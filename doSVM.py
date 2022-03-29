@@ -100,7 +100,7 @@ def Evaluate_Models(X_train, y_train, X_test, y_test, bSVMOnly = True):
     svmPreds = svmClassifier.predict(vectorised_test_documents)
     metricsReport(svmClassifier, test_labels, svmPreds)
 
-    print(svmClassifier, " macro_f1: %.4f , weighted_f1: %.4f, macro_precision: %.4f, macro_recall: %.4f" %
+    print(" macro_f1: %.4f , weighted_f1: %.4f, macro_precision: %.4f, macro_recall: %.4f" %
           (ModelsPerformance[svmClassifier][0], 
            ModelsPerformance[svmClassifier][1],
            ModelsPerformance[svmClassifier][2],
@@ -119,7 +119,7 @@ if __name__ == '__main__':
     X_test, y_test = dc.get_test()
 
     print("-----------------------------------------------")
-    for size in [400, 800, 1600, 3200, 4000, 8000, 15000, 20000]:
+    for size in [2000, 2500, 4000, 5000, 7500, 10000]:
         X_train, y_train = dc.get_train(size)
         print("Train data size: %.1f%% (%d samples): " % (len(y_train)/dc.get_train_len()*100, len(X_train)))
         Evaluate_Models(X_train, y_train, X_test, y_test)

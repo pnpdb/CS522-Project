@@ -70,7 +70,7 @@ class data_center():
         X_noisy, y_noisy   = self.get_noisy(noisy_size)
         df = pd.DataFrame(X_train + X_noisy, columns=['X'])
         df['y'] = y_train + y_noisy
-        df = sklearn.utils.shuffle(df)  # 随机打乱
+        df = sklearn.utils.shuffle(df, self.rseed)  #shuffle
         return list(df['X']), list(df['y'])
 
     # Get the size of the whole original set
