@@ -108,10 +108,8 @@ def Evaluate_Models(X_train, y_train, X_test, y_test, bSVMOnly = True):
 
 
 if __name__ == '__main__':
-    dataset = pd.read_csv("twitter_sentiment_data.csv")
-    dataset.head()
-
-    dc = data_center("twitter_sentiment_data.csv", test_size = 0.2, noisy_size = 0.2)
+    # dc = data_center("twitter_sentiment_data.csv", test_size=0.2, noisy_size=0.2) # sizes represented in proportions
+    dc = data_center("twitter_sentiment_data.csv", test_size=8000, noisy_size=8000) # sizes represented in absolute values
 
     print("####################################################")
     print("Total data size: ", dc.get_len())
@@ -119,8 +117,15 @@ if __name__ == '__main__':
     print("Total test data size: ",  dc.get_test_len())
 
     X_test, y_test = dc.get_test()
+
+    print("-----------------------------------------------")
     for size in [400, 800, 1600, 3200, 4000, 8000, 15000, 20000]:
-        print("-----------------------------------------------")
-        X_train, y_train = dc.get_train(size/dc.get_train_len())
-        print("Train data size %.1f%% (%d samples): " % (len(y_train)/dc.get_train_len()*100, len(X_train)))
+        X_train, y_train = dc.get_train(size)
+        print("Train data size: %.1f%% (%d samples): " % (len(y_train)/dc.get_train_len()*100, len(X_train)))
+        Evaluate_Models(X_train, y_train, X_test, y_test)
+
+    print("-----------------------------------------------")
+    for size in [(2000, 500), (4000, 1000), (7500, 2500)]:  # training set sizes represented in absolute values
+        X_train, y_train = dc.get_train_with_noisy(size[0], size[1])
+        print("Noisy training set size: %d samples (%d original, %d noisy)" % (len(y_train), size[0], size[1]))
         Evaluate_Models(X_train, y_train, X_test, y_test)
