@@ -19,11 +19,11 @@ class data_center():
         df.dropna(inplace=True)
         df = df.drop_duplicates(subset=['message'],keep='first')
 
-        self.rseed = 42                                     # the seed for random
-        self.dfOriginal = df                                # Let the cleaned set be the original set
+        self.rseed       = 522                              # the seed for random
+        self.dfOriginal  = df                               # let the cleaned set be the original set
         self.X_train, self.y_train           = None, None   # X,y of the training set
-        self.X_noisy, self.y_noisy           = None, None   # X,y of the noisy set
         self.X_test,  self.y_test            = None, None   # X,y of the test set
+        self.X_noisy, self.y_noisy           = None, None   # X,y of the noisy set
         self.X_validation, self.y_validation = None, None   # X,y of the validation set
 
         y = list(df['encoded_cat'])
@@ -149,7 +149,7 @@ if __name__ == '__main__':
     X_test, y_test              = dc.get_test()
     X_noisy, y_noisy            = dc.get_noisy()
 
-    print("-----------------------------------------------")
+    print("-----------------------------------------------------------------------")
     print("Raw set (not cleaned) size is %d"    % dc.get_raw_len())
     print("Original set size is %d"             % dc.get_len())
     print("Training set size is %d"             % dc.get_train_len())
@@ -158,17 +158,17 @@ if __name__ == '__main__':
     print("Validation set size is %d"           % dc.get_validation_len())
 
     print("\nGenerate training set with different sizes:")
-    print("-----------------------------------------------")
+    print("-----------------------------------------------------------------------")
     for size in [0.1, 0.5, 1]:         # training set sizes represented in proportions
         X_train, y_train = dc.get_train(size)
-        print("Training set size: %.1f%% (%d samples) " % (len(y_train)/dc.get_train_len()*100, len(X_train)))
+        print("Training set size: %5d samples (%4.1f%% of the whole training set)" % (len(y_train), len(y_train)/dc.get_train_len()*100))
 
-    print("-----------------------------------------------")
+    print("-----------------------------------------------------------------------")
     for size in [1000, 2000, 2500]:     # training set sizes represented in absolute values
         X_train, y_train = dc.get_train(size)
-        print("Training set size: %.1f%% (%d samples) " % (len(y_train)/dc.get_train_len()*100, len(X_train)))
+        print("Training set size: %5d samples (%4.1f%% of the whole training set)" % (len(y_train), len(y_train)/dc.get_train_len()*100))
 
-    print("-----------------------------------------------")
+    print("-----------------------------------------------------------------")
     for size in [(2000, 500), (4000, 1000), (7500, 2500)]:     # training set sizes represented in absolute values
         X_train, y_train = dc.get_train_with_noisy(size[0], size[1])
-        print("Noisy training set size %d samples " % len(X_train))
+        print("Noisy training set size: %5d samples (%d + %d)" % (len(X_train), size[0], size[1]))
