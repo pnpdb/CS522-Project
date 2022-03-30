@@ -3,6 +3,18 @@
     <keyboard-shortcut first-keystroke="shift alt f10" />
     <keyboard-shortcut first-keystroke="f5" />
   </action>
+  <action id="FindInPath">
+    <keyboard-shortcut first-keystroke="shift ctrl f" />
+    <keyboard-shortcut first-keystroke="ctrl alt f" />
+  </action>
   <action id="Graph.ApplyCurrentLayout" />
+  <action id="IntroduceField" />
+  <action id="ReformatCode">
+    <keyboard-shortcut first-keystroke="alt f8" />
+  </action>
   <action id="Resume" />
+  <action id="ShowFilterPopup" />
+  <action id="Vcs.ReformatCommitMessage">
+    <keyboard-shortcut first-keystroke="alt f8" />
+  </action>
 </keymap>
