@@ -35,9 +35,6 @@ class data_center():
         self.X_train, self.y_train, self.X_noisy, self.y_noisy\
             = self.__split_set(X1, y1, self.get_len() - test_size - noisy_size)
 
-        print(len(y1), len(self.y_train), len(self.y_noisy))
-        print(len(X1), len(self.X_train), len(self.X_noisy))
-
         # Change labels of noisy set
         random.seed(self.rseed)
         self.y_noisy = list(map(lambda x: (int(x) + random.randint(1, 3)) % 4, self.y_noisy))
@@ -70,7 +67,7 @@ class data_center():
         X_noisy, y_noisy   = self.get_noisy(noisy_size)
         df = pd.DataFrame(X_train + X_noisy, columns=['X'])
         df['y'] = y_train + y_noisy
-        df = sklearn.utils.shuffle(df, self.rseed)  #shuffle
+        df = sklearn.utils.shuffle(df, random_state=self.rseed)  #shuffle
         return list(df['X']), list(df['y'])
 
     # Get the size of the whole original set
