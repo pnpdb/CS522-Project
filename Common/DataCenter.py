@@ -6,18 +6,25 @@ from sklearn.model_selection import train_test_split
 # A class manager the data, which loads the data, generates a test set and train sets with different sizes,
 # and add noisy data to these train sets.
 class data_center():
-    def __init__(self, filename, test_size, noisy_size):  # file name, size of the test set, size of the noisy set
+    def __init__(self, filename, test_size, noisy_size, validation_size = 0):  # file name, size of the test set, size of the noisy set
         # load the original data set
-        df = pd.read_csv(filename, encoding='latin-1')
+        df          = pd.read_csv(filename, encoding='latin-1')
+        self.dfRaw  = df                                     # the raw set just load from the dataset file.
+
+        # do some cleaning, such as drop the NAs, drop the duplicates
+        df                = df.copy()
         df['encoded_cat'] = df.sentiment.astype("category").cat.codes
         df = df[df['message'] != None]
+               # the raw set just load from the dataset file.
         df.dropna(inplace=True)
+        df = df.drop_duplicates(subset=['message'],keep='first')
 
-        self.rseed = 42                 # the seed for random
-        self.dfOriginal = df            # the original set
-        # self.X_train, self.y_train    # X,y of the training set
-        # self.X_noisy, self.y_noisy    # X,y of the noisy set
-        # self.X_test, y1, self.y_test  # X,y of the test set
+        self.rseed = 42                                     # the seed for random
+        self.dfOriginal = df                                # Let the cleaned set be the original set
+        self.X_train, self.y_train           = None, None   # X,y of the training set
+        self.X_noisy, self.y_noisy           = None, None   # X,y of the noisy set
+        self.X_test,  self.y_test            = None, None   # X,y of the test set
+        self.X_validation, self.y_validation = None, None   # X,y of the validation set
 
         y = list(df['encoded_cat'])
         X = list(df['message'])
@@ -31,13 +38,24 @@ class data_center():
         self.X_test, self.y_test, X1, y1, \
             = self.__split_set(X, y, test_size)
 
-        # Split the rest part into two parts as the training set and the noisy set
-        self.X_train, self.y_train, self.X_noisy, self.y_noisy\
-            = self.__split_set(X1, y1, self.get_len() - test_size - noisy_size)
+        # Split a part out of rest set as the validation set
+        if validation_size:
+            self.X_validation, self.y_validation, X1, y1, \
+                = self.__split_set(X1, y1, validation_size)
+
+        # Split the rest part into two parts as the noisy set and the training set
+        self.X_noisy, self.y_noisy, self.X_train, self.y_train \
+            = self.__split_set(X1, y1, noisy_size)
 
         # Change labels of noisy set
         random.seed(self.rseed)
         self.y_noisy = list(map(lambda x: (int(x) + random.randint(1, 3)) % 4, self.y_noisy))
+
+    # Get the train set
+    # size: size of the set, represented in proportion (if <= 1) or absolute value (if > 1)
+    # return: X and y of training set
+    def get_train(self, size=None):
+        return self.__get_sub_set(self.X_train, self.y_train, size)
 
     # Get the test set
     # size: size of the set, represented in proportion (if <= 1) or absolute value (if > 1)
@@ -48,14 +66,14 @@ class data_center():
     # Get the noisy set
     # size: size of the set, represented in proportion (if <= 1) or absolute value (if > 1)
     # return: X and y of noisy set
+    def get_validation(self, size=None):
+        return self.__get_sub_set(self.X_validation, self.y_validation, size)
+
+    # Get the noisy set
+    # size: size of the set, represented in proportion (if <= 1) or absolute value (if > 1)
+    # return: X and y of noisy set
     def get_noisy(self, size=None):
         return self.__get_sub_set(self.X_noisy, self.y_noisy, size)
-
-    # Get the train set
-    # size: size of the set, represented in proportion (if <= 1) or absolute value (if > 1)
-    # return: X and y of training set
-    def get_train(self, size=None):
-        return self.__get_sub_set(self.X_train, self.y_train, size)
 
     # Get the train set with noisy data
     # original_size: size of the data from the original train set the set
@@ -70,21 +88,29 @@ class data_center():
         df = sklearn.utils.shuffle(df, random_state=self.rseed)  #shuffle
         return list(df['X']), list(df['y'])
 
+    # Get the size of the raw set
+    def get_raw_len(self):
+        return len(self.dfRaw)
+
     # Get the size of the whole original set
     def get_len(self):
         return len(self.dfOriginal)
 
     # Get the size of the whole train set
     def get_train_len(self):
-        return len(self.y_train)
+        return 0 if self.y_train is None else len(self.y_train)
 
     # Get the size of the whole test set
     def get_test_len(self):
-        return len(self.y_test)
+        return 0 if self.y_test is None else len(self.y_test)
+
+    # Get the size of the whole validation set
+    def get_validation_len(self):
+        return 0 if self.y_validation is None else len(self.y_validation)
 
     # Get the size of the whole noisy set
     def get_noisy_len(self):
-        return len(self.y_noisy)
+        return 0 if self.y_noisy is None else len(self.y_noisy)
 
     # Get the subset with the specific size
     # return: X y of subset
@@ -105,6 +131,9 @@ class data_center():
                 train_test_split(x, y, test_size=1 - size, random_state=self.rseed, stratify=y)
             return X1, y1, X2, y2
 
+        if size > len(y):
+            raise Exception("Size of the subset is large than the set!")
+
         # Size is represented by absolute value
         X1, X2, y1, y2 = \
             train_test_split(x, y, test_size=1 - (size + 1) / len(y), random_state=self.rseed, stratify=y)
@@ -116,15 +145,17 @@ class data_center():
 if __name__ == '__main__':
     #Split the original data set into 3 parts: training set, test set, noisy set
     # dc = data_center("twitter_sentiment_data.csv", test_size=0.2, noisy_size=0.2) # sizes represented in proportions
-    dc = data_center("twitter_sentiment_data.csv", test_size=8000, noisy_size=8000) # sizes represented in absolute values
+    dc = data_center("twitter_sentiment_data.csv", test_size=8000, noisy_size=8000, validation_size=5000) # sizes represented in absolute values
     X_test, y_test              = dc.get_test()
     X_noisy, y_noisy            = dc.get_noisy()
 
     print("-----------------------------------------------")
-    print("Original size is %d" % dc.get_len())
-    print("Training set size is %d" % dc.get_train_len())
-    print("Test set size is %d" % dc.get_test_len())
-    print("Noisy set size is %d" % dc.get_noisy_len())
+    print("Raw set (not cleaned) size is %d"    % dc.get_raw_len())
+    print("Original set size is %d"             % dc.get_len())
+    print("Training set size is %d"             % dc.get_train_len())
+    print("Test set size is %d"                 % dc.get_test_len())
+    print("Noisy set size is %d"                % dc.get_noisy_len())
+    print("Validation set size is %d"           % dc.get_validation_len())
 
     print("\nGenerate training set with different sizes:")
     print("-----------------------------------------------")

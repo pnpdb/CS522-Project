@@ -121,7 +121,7 @@ if __name__ == '__main__':
     print("-----------------------------------------------")
     for size in [2000, 2500, 4000, 5000, 7500, 10000]:
         X_train, y_train = dc.get_train(size)
-        print("Train data size: %.1f%% (%d samples): " % (len(y_train)/dc.get_train_len()*100, len(X_train)))
+        print("Training set size: %d samples (%.1f%%): " % (len(X_train), len(y_train)/dc.get_train_len()*100))
         Evaluate_Models(X_train, y_train, X_test, y_test)
 
     print("-----------------------------------------------")
