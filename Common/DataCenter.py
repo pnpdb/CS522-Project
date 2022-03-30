@@ -168,7 +168,7 @@ if __name__ == '__main__':
         X_train, y_train = dc.get_train(size)
         print("Training set size: %5d samples (%4.1f%% of the whole training set)" % (len(y_train), len(y_train)/dc.get_train_len()*100))
 
-    print("-----------------------------------------------------------------")
+    print("-----------------------------------------------------------------------")
     for size in [(2000, 500), (4000, 1000), (7500, 2500)]:     # training set sizes represented in absolute values
         X_train, y_train = dc.get_train_with_noisy(size[0], size[1])
         print("Noisy training set size: %5d samples (%d + %d)" % (len(X_train), size[0], size[1]))
