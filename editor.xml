@@ -3,8 +3,4 @@
     <option name="FONT_SIZE" value="18" />
     <option name="FONT_FAMILY" value="NSimSun" />
   </component>
-  <component name="TodoConfiguration">
-    <pattern pattern="\btodo\b.*" />
-    <pattern pattern="\bfixme\b.*" />
-  </component>
 </application>
