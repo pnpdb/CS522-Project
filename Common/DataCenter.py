@@ -63,7 +63,7 @@ class data_center():
     def get_test(self, size=None):
         return self.__get_sub_set(self.X_test, self.y_test, size)
 
-    # Get the noisy set
+    # Get the validation set
     # size: size of the set, represented in proportion (if <= 1) or absolute value (if > 1)
     # return: X and y of noisy set
     def get_validation(self, size=None):
