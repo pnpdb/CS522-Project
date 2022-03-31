@@ -36,16 +36,16 @@ class data_center():
 
         # Split a part out of the original set as the test set
         self.X_test, self.y_test, X1, y1, \
-            = self.__split_set(X, y, test_size)
+            = self.split_set(X, y, test_size)
 
         # Split a part out of rest set as the validation set
         if validation_size:
             self.X_validation, self.y_validation, X1, y1, \
-                = self.__split_set(X1, y1, validation_size)
+                = self.split_set(X1, y1, validation_size)
 
         # Split the rest part into two parts as the noisy set and the training set
         self.X_noisy, self.y_noisy, self.X_train, self.y_train \
-            = self.__split_set(X1, y1, noisy_size)
+            = self.split_set(X1, y1, noisy_size)
 
         # Change labels of noisy set
         random.seed(self.rseed)
@@ -55,25 +55,25 @@ class data_center():
     # size: size of the set, represented in proportion (if <= 1) or absolute value (if > 1)
     # return: X and y of training set
     def get_train(self, size=None):
-        return self.__get_sub_set(self.X_train, self.y_train, size)
+        return self.get_sub_set(self.X_train, self.y_train, size)
 
     # Get the test set
     # size: size of the set, represented in proportion (if <= 1) or absolute value (if > 1)
     # return: X and y of test set
     def get_test(self, size=None):
-        return self.__get_sub_set(self.X_test, self.y_test, size)
+        return self.get_sub_set(self.X_test, self.y_test, size)
 
     # Get the validation set
     # size: size of the set, represented in proportion (if <= 1) or absolute value (if > 1)
     # return: X and y of noisy set
     def get_validation(self, size=None):
-        return self.__get_sub_set(self.X_validation, self.y_validation, size)
+        return self.get_sub_set(self.X_validation, self.y_validation, size)
 
     # Get the noisy set
     # size: size of the set, represented in proportion (if <= 1) or absolute value (if > 1)
     # return: X and y of noisy set
     def get_noisy(self, size=None):
-        return self.__get_sub_set(self.X_noisy, self.y_noisy, size)
+        return self.get_sub_set(self.X_noisy, self.y_noisy, size)
 
     # Get the train set with noisy data
     # original_size: size of the data from the original train set the set
@@ -114,14 +114,14 @@ class data_center():
 
     # Get the subset with the specific size
     # return: X y of subset
-    def __get_sub_set(self, x, y, size=None):
-        X1, y1, X2, y2 = self.__split_set(x, y, size)
+    def get_sub_set(self, x, y, size=None):
+        X1, y1, X2, y2 = self.split_set(x, y, size)
         return X1, y1
 
     # Split the dataset into two parts
     # size: the size of subset 1
     # return: X y of subset 1 and that of subset 2
-    def __split_set(self, x, y, size=None):
+    def split_set(self, x, y, size=None):
         if size is None or size == 1:
             return x, y, None, None
 

@@ -40,58 +40,11 @@ def Evaluate_Models(X_train, y_train, X_test, y_test, bSVMOnly = True):
     vectorizer = TfidfVectorizer()
     vectorised_train_documents = vectorizer.fit_transform(X_train)
     vectorised_test_documents = vectorizer.transform(X_test)
-    # print("##########################################")
-    # print("vectorised train documents:")
-    # print(vectorised_train_documents)
 
     # Using the One vs All concept, I am changing the labels to vectors (4 x 1) each
     mlb = MultiLabelBinarizer()
     train_labels = mlb.fit_transform(map(str, y_train))
     test_labels = mlb.transform(map(str, y_test))
-
-    if(not bSVMOnly):
-        #Distribution of most common words
-        features = vectorizer.get_feature_names_out()
-        visualizer = FreqDistVisualizer(features=features, orient='v')
-        visualizer.fit(vectorised_train_documents)
-        visualizer.show()
-
-        #first weak classifier
-        bagClassifier = OneVsRestClassifier(BaggingClassifier(n_jobs=-1))
-        bagClassifier.fit(vectorised_train_documents, train_labels)
-        bagPreds = bagClassifier.predict(vectorised_test_documents)
-        metricsReport(bagClassifier, test_labels, bagPreds)
-
-        #Model: K-nearest-Neighbors
-        knnClf = KNeighborsClassifier()
-
-        knnClf.fit(vectorised_train_documents, train_labels)
-        knnPredictions = knnClf.predict(vectorised_test_documents)
-        metricsReport(knnClf, test_labels, knnPredictions)
-
-        #Model: Decision Tree
-        dtClassifier = DecisionTreeClassifier()
-        dtClassifier.fit(vectorised_train_documents, train_labels)
-        dtPreds = dtClassifier.predict(vectorised_test_documents)
-        metricsReport(dtClassifier, test_labels, dtPreds)
-
-        #Model: Random Forest
-        rfClassifier = RandomForestClassifier(n_jobs=-1)
-        rfClassifier.fit(vectorised_train_documents, train_labels)
-        rfPreds = rfClassifier.predict(vectorised_test_documents)
-        metricsReport(rfClassifier, test_labels, rfPreds)
-
-        #Model: Gradient Boosting
-        boostClassifier = OneVsRestClassifier(GradientBoostingClassifier())
-        boostClassifier.fit(vectorised_train_documents, train_labels)
-        boostPreds = boostClassifier.predict(vectorised_test_documents)
-        metricsReport(boostClassifier, test_labels, boostPreds)
-
-        #Model: Multinominal Naive Bayes
-        nbClassifier = OneVsRestClassifier(MultinomialNB())
-        nbClassifier.fit(vectorised_train_documents, train_labels)
-        nbPreds = nbClassifier.predict(vectorised_test_documents)
-        metricsReport(nbClassifier, test_labels, nbPreds)
 
     #Model: Linear Support Vector Machine
     svmClassifier = OneVsRestClassifier(LinearSVC(), n_jobs=-1)
