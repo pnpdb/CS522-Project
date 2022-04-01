@@ -70,7 +70,7 @@ if __name__ == '__main__':
         X_train, y_train = dc.get_train(size)
         print("Training set size: %d samples (%.1f%%): " % (len(X_train), len(y_train)/dc.get_train_len()*100))
 
-        # Do experiment
+        # Do an experiment
         do_experiment(X_train, y_train, X_test, y_test)
 
     print("-----------------------------------------------")
@@ -79,5 +79,5 @@ if __name__ == '__main__':
         X_train, y_train = dc.get_train_with_noisy(size[0], size[1])
         print("Noisy training set size: %d samples (%d original, %d noisy)" % (len(y_train), size[0], size[1]))
 
-        # Do experiment
+        # Do an experiment
         do_experiment(X_train, y_train, X_test, y_test)
