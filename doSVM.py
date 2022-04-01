@@ -1,84 +1,83 @@
 #!/usr/bin/env python
 # coding: utf-8
-
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from yellowbrick.text import FreqDistVisualizer
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn import metrics
 from sklearn.preprocessing import MultiLabelBinarizer
-from sklearn.ensemble import BaggingClassifier
 from sklearn.multiclass import OneVsRestClassifier
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, hamming_loss
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import precision_score, recall_score, f1_score
 from sklearn.svm import LinearSVC
 from Common.DataCenter import data_center
 
-ModelsPerformance = {}
-# Creating method for model evaluation
-def metricsReport(modelName, test_labels, predictions):
-    macro_f1 = f1_score(test_labels, predictions, average='macro')
+# Text preprocessing
+def text_preprocessing(X_train, X_test):
+    # Convert texts to vectors
+    vectorizer  = TfidfVectorizer()
+    X_train_vec = vectorizer.fit_transform(X_train)
+    X_test_vec  = vectorizer.transform(X_test)
+    return X_train_vec, X_test_vec
 
-    #micro_f1 = f1_score(test_labels, predictions, average='micro')
-    
-    weighted_f1 = f1_score(test_labels, predictions, average='weighted')
-    
-    macro_precision = precision_score(test_labels, predictions, average='macro')
-    
-    macro_recall = recall_score(test_labels, predictions, average='macro')   
-
-    # hamLoss = hamming_loss(test_labels, predictions)
-    ModelsPerformance[modelName] = (macro_f1, weighted_f1, macro_precision, macro_recall)
-
-def Evaluate_Models(X_train, y_train, X_test, y_test, bSVMOnly = True):
-    #Initializing Vectorization of Climate posts
-    vectorizer = TfidfVectorizer()
-    vectorised_train_documents = vectorizer.fit_transform(X_train)
-    vectorised_test_documents = vectorizer.transform(X_test)
-
-    # Using the One vs All concept, I am changing the labels to vectors (4 x 1) each
+# One-hot encoding, convert the labels to vectors (4 x 1) each
+def one_hot_encoding(y_train, y_test):
     mlb = MultiLabelBinarizer()
-    train_labels = mlb.fit_transform(map(str, y_train))
-    test_labels = mlb.transform(map(str, y_test))
+    y_train_vec  = mlb.fit_transform(map(str, y_train))
+    y_test_vec   = mlb.transform(map(str, y_test))
+    return y_train_vec, y_test_vec
 
-    #Model: Linear Support Vector Machine
-    svmClassifier = OneVsRestClassifier(LinearSVC(), n_jobs=-1)
-    svmClassifier.fit(vectorised_train_documents, train_labels)
+# Run SVM and evaluate the results
+def evaluate_SVM(X_train_vec, y_train_vec, X_test_vec, y_test_vec):
+    # Run SVM - fit and predict
+    SVM = OneVsRestClassifier(LinearSVC(), n_jobs=-1)
+    SVM.fit(X_train_vec, y_train_vec)
+    prediction = SVM.predict(X_test_vec)
 
-    svmPreds = svmClassifier.predict(vectorised_test_documents)
-    metricsReport(svmClassifier, test_labels, svmPreds)
+    # Evaluate the results
+    macro_f1 = f1_score(y_test_vec, prediction, average='macro')
+    weighted_f1 = f1_score(y_test_vec, prediction, average='weighted')
+    macro_precision = precision_score(y_test_vec, prediction, average='macro')
+    macro_recall = recall_score(y_test_vec, prediction, average='macro')
 
+    return macro_f1, weighted_f1, macro_precision, macro_recall
+
+# do an experiment
+def do_experiment(X_train, y_train, X_test, y_test):
+    # Convert texts to vectors
+    X_train_vec, X_test_vec = text_preprocessing(X_train, X_test)
+    y_train_vec, y_test_vec = one_hot_encoding(y_train, y_test)
+
+    # Run SVM and evaluate the results
+    macro_f1, weighted_f1, macro_precision, macro_recall = \
+        evaluate_SVM(X_train_vec, y_train_vec, X_test_vec, y_test_vec)
+
+    # Show the indicators
     print(" macro_f1: %.4f , weighted_f1: %.4f, macro_precision: %.4f, macro_recall: %.4f" %
-          (ModelsPerformance[svmClassifier][0], 
-           ModelsPerformance[svmClassifier][1],
-           ModelsPerformance[svmClassifier][2],
-           ModelsPerformance[svmClassifier][3]))
-
+          (macro_f1, weighted_f1, macro_precision, macro_recall))
 
 if __name__ == '__main__':
-    # dc = data_center("twitter_sentiment_data.csv", test_size=0.2, noisy_size=0.2) # sizes represented in proportions
+    # Load the database and split it into training set, test set, noisy set, validation set
     dc = data_center("twitter_sentiment_data.csv", test_size=8000, noisy_size=8000) # sizes represented in absolute values
 
     print("####################################################")
-    print("Total data size: ", dc.get_len())
+    print("Total data size: ",       dc.get_len())
     print("Total train data size: ", dc.get_train_len())
     print("Total test data size: ",  dc.get_test_len())
 
+    # Get the test set for evaluation
     X_test, y_test = dc.get_test()
 
+    # Run experiments with different training set, and use the same test set.
     print("-----------------------------------------------")
     for size in [2000, 2500, 4000, 5000, 7500, 10000]:
+        # Get training set without noisy data
         X_train, y_train = dc.get_train(size)
         print("Training set size: %d samples (%.1f%%): " % (len(X_train), len(y_train)/dc.get_train_len()*100))
-        Evaluate_Models(X_train, y_train, X_test, y_test)
+
+        # Do experiment
+        do_experiment(X_train, y_train, X_test, y_test)
 
     print("-----------------------------------------------")
-    for size in [(2000, 500), (4000, 1000), (7500, 2500)]:  # training set sizes represented in absolute values
+    for size in [(2000, 500), (4000, 1000), (7500, 2500)]:
+        # Get noisy training set
         X_train, y_train = dc.get_train_with_noisy(size[0], size[1])
         print("Noisy training set size: %d samples (%d original, %d noisy)" % (len(y_train), size[0], size[1]))
-        Evaluate_Models(X_train, y_train, X_test, y_test)
+
+        # Do experiment
+        do_experiment(X_train, y_train, X_test, y_test)
