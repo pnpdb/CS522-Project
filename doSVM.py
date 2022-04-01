@@ -53,7 +53,7 @@ def do_experiment(X_train, y_train, X_test, y_test):
 
 if __name__ == '__main__':
     # Load the database and split it into training set, test set, noisy set, validation set
-    dc = data_center("twitter_sentiment_data.csv", test_size=8000, noisy_size=8000) # sizes represented in absolute values
+    dc = data_center("twitter_sentiment_data.csv", test_size=8000, noisy_size=8000, validation_size=5000)
 
     print("####################################################")
     print("Total data size: ",       dc.get_len())
