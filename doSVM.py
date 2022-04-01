@@ -8,36 +8,42 @@ from sklearn.svm import LinearSVC
 from Common.DataCenter import data_center
 
 # Text preprocessing
+# parameter: original X of training set and test set
+# return:  vectorised X of training set and test set
 def text_preprocessing(X_train, X_test):
     # Convert texts to vectors
-    vectorizer  = TfidfVectorizer()
-    X_train_vec = vectorizer.fit_transform(X_train)
-    X_test_vec  = vectorizer.transform(X_test)
+    vectorizer   = TfidfVectorizer()
+    X_train_vec  = vectorizer.fit_transform(X_train)
+    X_test_vec   = vectorizer.transform(X_test)
     return X_train_vec, X_test_vec
 
 # One-hot encoding, convert the labels to vectors (4 x 1) each
+# parameter: original y of training set, original y of test set
+# return:  encoded y of training set and test set
 def one_hot_encoding(y_train, y_test):
-    mlb = MultiLabelBinarizer()
+    mlb          = MultiLabelBinarizer()
     y_train_vec  = mlb.fit_transform(map(str, y_train))
     y_test_vec   = mlb.transform(map(str, y_test))
     return y_train_vec, y_test_vec
 
 # Run SVM and evaluate the results
+# parameter:  vectorised X and encoded y of training set and test set
 def evaluate_SVM(X_train_vec, y_train_vec, X_test_vec, y_test_vec):
     # Run SVM - fit and predict
-    SVM = OneVsRestClassifier(LinearSVC(), n_jobs=-1)
+    SVM             = OneVsRestClassifier(LinearSVC(), n_jobs=-1)
     SVM.fit(X_train_vec, y_train_vec)
-    prediction = SVM.predict(X_test_vec)
+    prediction      = SVM.predict(X_test_vec)
 
     # Evaluate the results
-    macro_f1 = f1_score(y_test_vec, prediction, average='macro')
-    weighted_f1 = f1_score(y_test_vec, prediction, average='weighted')
+    macro_f1        = f1_score(y_test_vec, prediction, average='macro')
+    weighted_f1     = f1_score(y_test_vec, prediction, average='weighted')
     macro_precision = precision_score(y_test_vec, prediction, average='macro')
-    macro_recall = recall_score(y_test_vec, prediction, average='macro')
+    macro_recall    = recall_score(y_test_vec, prediction, average='macro')
 
     return macro_f1, weighted_f1, macro_precision, macro_recall
 
 # do an experiment
+# Parameter: original X,y of training set and test set
 def do_experiment(X_train, y_train, X_test, y_test):
     # Convert texts to vectors
     X_train_vec, X_test_vec = text_preprocessing(X_train, X_test)
@@ -63,10 +69,10 @@ if __name__ == '__main__':
     # Get the test set for evaluation
     X_test, y_test = dc.get_test()
 
-    # Run experiments with different training set, and use the same test set.
+    # Run experiments with different training sets, and use the same test set.
     print("-----------------------------------------------")
     for size in [2000, 2500, 4000, 5000, 7500, 10000]:
-        # Get training set without noisy data
+        # Get a training set without noisy data
         X_train, y_train = dc.get_train(size)
         print("Training set size: %d samples (%.1f%%): " % (len(X_train), len(y_train)/dc.get_train_len()*100))
 
@@ -75,7 +81,7 @@ if __name__ == '__main__':
 
     print("-----------------------------------------------")
     for size in [(2000, 500), (4000, 1000), (7500, 2500)]:
-        # Get noisy training set
+        # Get a noisy training set
         X_train, y_train = dc.get_train_with_noisy(size[0], size[1])
         print("Noisy training set size: %d samples (%d original, %d noisy)" % (len(y_train), size[0], size[1]))
 
