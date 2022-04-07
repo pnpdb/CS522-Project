@@ -122,8 +122,13 @@ class SKLearnLSA:
         self.U = UT.T
         self.V = pd.DataFrame(dtm_lsa, index = docs, columns = compNames)
         self.S = np.diag(lsa.singular_values_)
+        self.SInv = np.diag(1 / lsa.singular_values_)
         
     def Query2LatentSpace(self, strList):
         q = self.mVectorizer.transform(strList)
         query = q@self.U@self.S
+        return query
+    def Query2LatentSpaceUnscaled(self, strList):
+        q = self.mVectorizer.transform(strList)
+        query = q@self.U@self.SInv
         return query
