@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 import random
 import sklearn
 from sklearn.model_selection import train_test_split
@@ -9,7 +10,7 @@ class data_center():
     # parameter: file name, size of the test set, size of the noisy set
     def __init__(self, filename, test_size, noisy_size, validation_size = 0):
         # load the original data set
-        df          = pd.read_csv(filename, encoding='UTF-8')
+        df          = pd.read_csv(filename, encoding='UTF-8', usecols=[0,1])
         self.dfRaw  = df                                     # the raw set just load from the dataset file.
 
         # do some cleaning, such as drop the NAs, drop the duplicates
@@ -17,33 +18,47 @@ class data_center():
         df['sentiment'] = df['sentiment'].astype("category").cat.codes
         df = df[df['message'] != None]
         df.dropna(inplace=True)
-        df = df.drop_duplicates(subset=['message'],keep='first')
+        df = df.drop_duplicates(subset=['message'],keep=False)
+        self.class_count = len(df['sentiment'].value_counts(sort = False))
 
-        self.dfOriginal         = df                           # let the cleaned set be the original set
+        self.dfOriginal         = df                    # let the cleaned set be the original set
         self.shuffle(rseed = 522)                       # shuffle the original set
         self.train_size         = len(df) - test_size - noisy_size - validation_size
         self.test_size          = test_size
         self.validation_size    = validation_size
         self.noisy_size         = noisy_size
 
+        self.dfOriginal         = df                    # let the cleaned set be the original set
+        self.dfNoisy            = None                  # the noisy set
+
+        # the distribution of the whole original set
+        self.distribution       = [x/len(df) for x in list(df['sentiment'].value_counts(sort = False))]
+
+    # Shuffle to generate all the data sets in a new way.
     def shuffle(self, rseed):
         self.rseed       = rseed                        # the seed for random
         df               = sklearn.utils.shuffle(self.dfOriginal, random_state=self.rseed)
 
-        # Split into 4 groups by 'sentiment'
+        # Split into several groups by 'sentiment'
         self.dfs         = []
-        for i in range(4):
+        for i in range(self.class_count):
             self.dfs.append(df[df['sentiment'] == i])
 
-    # Get a subset with the same 'sentiment' distribution as the whole original set
     # start: start position in the whole uniformed original set
     # size:  size of the subset
-    def __get_uniformed_subset(self, start, size):
+    # distribution: the 'sentiment' distribution. None if use the distribution of the whole original set
+    def __get_subset(self, start, set_size, size, distribution = None):
+        dist = self.distribution if distribution is None else distribution
         df = self.dfOriginal[:0]
-        for i in range(4):
-            ratio   = len(self.dfs[i]) / len(self.dfOriginal)
-            s       = int(round(start * ratio))
-            c       = int(round(size * ratio))
+        for i in range(self.class_count):
+            s = int(round(start * self.distribution[i]))    # Use original distribution for getting the start position
+            c = int(round(size * dist[i]))                  # Use specific distribution to calc the size of every label
+            if i == self.class_count - 1:
+                c = size - len(df)
+            if c > int(round(set_size * self.distribution[i])+1):
+                print("Cannot generate the set with size %d and distribution %s!" \
+                      % (size, str(distribution)))
+                exit(-1)
             if c > 0:
                 df  = pd.concat([df, self.dfs[i][s : s + c]])
         df = sklearn.utils.shuffle(df[:size], random_state=self.rseed)
@@ -52,58 +67,134 @@ class data_center():
     # Get the train set
     # size: size of the train set
     # return: X and y of training set
-    def get_train(self, size=None):
+    # distribution: the 'sentiment' distribution. None if use the distribution of the whole original set
+    def get_train(self, size=None, distribution = None):
         if size is None:
             size = self.train_size
         if size > self.train_size:
             raise Exception("The size is large than the max train size!")
-        df = self.__get_uniformed_subset(0, size)
+        df = self.__get_subset(0, self.train_size, size, distribution)
         return list(df['message']), list(df['sentiment'])
 
     # Get a test set
     # size: size of the test set
     # return: X and y of test set
-    def get_test(self, size=None):
+    # distribution: the 'sentiment' distribution. None if use the distribution of the whole original set
+    def get_test(self, size=None, distribution = None):
         if size is None:
             size = self.test_size
         if size > self.test_size:
             raise Exception("The size is large than the max test size!")
-        df = self.__get_uniformed_subset(self.train_size, size)
+        df = self.__get_subset(self.train_size, self.test_size, size, distribution)
         return list(df['message']), list(df['sentiment'])
 
     # Get a validation set
     # size: size of the validation set
     # return: X and y of noisy set
-    def get_validation(self, size=None):
+    # distribution: the 'sentiment' distribution. None if use the distribution of the whole original set
+    def get_validation(self, size=None, distribution = None):
         if size is None:
             size = self.validation_size
         if size > self.validation_size:
             raise Exception("The size is large than the max validation size!")
-        df = self.__get_uniformed_subset(self.train_size + self.test_size, size)
+        df = self.__get_subset(self.train_size + self.test_size, self.validation_size, size, distribution)
         return list(df['message']), list(df['sentiment'])
 
-    # Get a noisy set
+    # Get a original noisy set with is generated form the origianl set by mislabeling
     # size: size of the noisy set
     # return: X and y of noisy set
-    def get_noisy(self, size=None):
+    def get_original_noisy(self, size=None):
         if size is None:
             size = self.noisy_size
         if size > self.noisy_size:
-            raise Exception("The size is large than the max noisy size!")
+            raise Exception("The size is large than the max original noisy size!")
 
-        df = self.__get_uniformed_subset(self.train_size + self.test_size + self.validation_size, size)
+        df = self.__get_subset(self.train_size + self.test_size + self.validation_size, self.noisy_size, size)
 
         # Change labels to make noise
         random.seed(self.rseed)
-        df['sentiment'] = list(map(lambda x: (int(x) + random.randint(1, 3)) % 4, df['sentiment']))
+        df['sentiment'] = list(map(lambda x: (int(x) + random.randint(1, self.class_count-1)) % self.class_count, df['sentiment']))
 
+        return df
+
+    # Get a noisy set which is mixed by the original noisy, irrelevant noisy, translated noisy, etc.
+    # size: size of the noisy set
+    # return: X and y of noisy set
+    def get_noisy(self, size = None):
+        if self.dfNoisy is None:
+            self.dfNoisy = self.get_original_noisy()
+        if size is None:
+            df = self.dfNoisy
+        else:
+            if size > len(self.dfNoisy):
+                raise Exception("The size is large than the size of total noisy set!")
+            df = self.dfNoisy[:size]
+        df = sklearn.utils.shuffle(df, random_state=self.rseed)
         return list(df['message']), list(df['sentiment'])
 
+    # Reset the noisy set to the origianl noisy set
+    def reset_noisy(self):
+        self.dfNoisy    = None
+
+    # Enumate .csv files in a directory
+    def __enum_files(self, dir):
+        lstFile = []
+        ls = os.listdir(dir)
+        for fn in ls:
+            pos = fn.find('.')
+            if (pos >= 1):
+                surfix = fn[pos + 1:]
+                if(surfix == 'csv'):
+                    lstFile.append(fn)
+        return lstFile
+
+    # Add the external noisy data to the noisy set
+    # None indicates use the same distribution as that of the whole original data
+    # noisy_source: name of noisy source, like: irrelevant, translated
+    # distribution: distribution of the noisy
+    # size: size of noisy to be add. None indicates all noisy data will be added
+    def add_noisy(self, noisy_source, distribution = None, size = None):
+        lstMessage = []
+        dir = '.\\Noisy\\' + noisy_source + '\\'
+        lstFile = self.__enum_files(dir)
+        for file in lstFile:
+            df = pd.read_csv(dir + file, encoding='UTF-8')
+            lstMessage += list(df['message'])
+        lstMessage = sklearn.utils.shuffle(lstMessage, random_state=self.rseed)
+
+        if distribution is None:
+            distribution = self.distribution
+        length = len(lstMessage)
+        lstSentiment = []
+        for i in range(self.class_count):
+            c = int(round(length * distribution[i]))                  # Use specific distribution to calc the size of every label
+            if i == self.class_count - 1:
+                c = length - len(lstSentiment)
+            lstSentiment += ([i]*c)
+        lstSentiment = sklearn.utils.shuffle(lstSentiment, random_state=self.rseed)
+
+        df = pd.DataFrame(lstSentiment, columns=['sentiment'])
+        df['message']   = lstMessage
+
+        df = df[df['message'] != None]
+        df.dropna(inplace=True)
+        df = df.drop_duplicates(subset=['message'],keep=False)
+
+        if size is not None:
+            if size > length:
+                raise Exception("The size is large than the size of noisy source!")
+            df  = df[:size]
+
+        if self.dfNoisy is None:
+            self.dfNoisy = self.get_original_noisy()
+        self.dfNoisy    = pd.concat([self.dfNoisy, df])
+
     # Get the train set with noisy data
-    # original_size: size of the data from the original train set the set
+    # original_size: size of the data from the original train set
     # noisy_size:    size of the noisy data
-    def get_train_with_noisy(self, original_size = None, noisy_size = None):
-        X_train, y_train   = self.get_train(original_size)
+    # distribution: the 'sentiment' of original train set. None if use the distribution of the whole original set
+    def get_train_with_noisy(self, original_size = None, noisy_size = None, distribution = None):
+        X_train, y_train   = self.get_train(original_size, distribution)
         if noisy_size is None:
             return X_train, y_train
         X_noisy, y_noisy   = self.get_noisy(noisy_size)
@@ -132,9 +223,15 @@ class data_center():
     def get_validation_len(self):
         return self.validation_size
 
-    # Get the size of the whole noisy set
-    def get_noisy_len(self):
+    # Get the size of the whole original noisy set. External noisy not included
+    def get_original_noisy_len(self):
         return self.noisy_size
+
+    # Get the size of the whole noisy set, Including the external noisy
+    def get_noisy_len(self):
+        if self.dfNoisy is None:
+            return self.get_original_noisy_len()
+        return len(self.dfNoisy)
 
     # Get the subset with the specific size
     # return: X y of subset
@@ -142,7 +239,7 @@ class data_center():
         X1, y1, X2, y2 = self.split_set(x, y, size)
         return X1, y1
 
-    # Split the dataset into two parts
+    # Split a dataset into two parts
     # size: the size of subset 1
     # return: X y of subset 1 and that of subset 2
     def split_set(self, x, y, size=None):
@@ -160,21 +257,25 @@ class data_center():
         else:
             return X1[:size], y1[:size], X2 + X1[-1:], y2 + y1[-1:]
 
+    # Get the distribution of the whole original set
+    def get_original_distribution(self):
+        return self.distribution
+
     @staticmethod
+    # Combine X,y as in dataframe format
     def df(Xy):
         return pd.DataFrame({'message':Xy[0] , 'sentiment':Xy[1]})
 
 if __name__ == '__main__':
     def print_distribution(hint, y):
         df = data_center.df((y, y))
-        c = df['sentiment'].value_counts()
+        c = df['sentiment'].value_counts(sort = False)
         l = len(df)
-        print("%s: ( 0 : %.1f%%, 1 : %.1f%%, 2: %.1f%%, 3 : %.1f%%)"
-              % (hint, c[0] * 100 / l, c[1] * 100 / l, c[2] * 100 / l, c[3] * 100 / l))
+        print("%s: %s" % (hint, ("%.1f%%, "*(len(c)-1)+"%.1f%%") % tuple([x*100/l for x in list(c)])))
 
     #Split the original data set into 3 parts: training set, test set, noisy set
-    dc = data_center("twitter_sentiment_data.csv", test_size=8000, noisy_size=8000, validation_size=5000)
-    dc.shuffle(rseed = 522) # Shuffle to setup a series of experiments
+    dc = data_center("twitter_sentiment_data.csv", test_size=4000, noisy_size=3000)
+    dc.shuffle(rseed = 522) # Shuffle to setup a new series of experiments
     X_train, y_train              = dc.get_train()
 
     print("-----------------------------------------------------------------------")
@@ -188,28 +289,23 @@ if __name__ == '__main__':
 
     print("\nGenerate training set with different sizes:")
     print("-----------------------------------------------------------------------")
-    for size in [1000, 2000, 2500]:     # training set sizes represented in absolute values
-        X_train, y_train = dc.get_train(size)
+
+    # distribution of training set. None indicates use the same distribution as that of the whole original data
+    train_distribution = None
+
+    # distribution of external noisy
+    external_noisy_distribution = [0.25, 0.25, 0.25, 0.25]
+
+    # add the external noisy data
+    dc.add_noisy(noisy_source="irrelevant", distribution = external_noisy_distribution, size = 5000)
+
+    for size in [6000, 7500, 12000, 15000, 22500, 30000]:     # training set sizes represented in absolute values
+        X_train, y_train = dc.get_train(size, train_distribution)
         print("Training set size: %5d samples" % (len(y_train)))
         print_distribution("Sentiment distribution", y_train)
 
     print("-----------------------------------------------------------------------")
-    for size in [(2000, 500), (4000, 1000), (7500, 2500)]:     # training set sizes represented in absolute values
-        X_train, y_train = dc.get_train_with_noisy(size[0], size[1])
+    for size in [(6000, 1500), (12000, 3000), (22500, 7500)]:     # training set sizes represented in absolute values
+        X_train, y_train = dc.get_train_with_noisy(size[0], size[1], train_distribution)
         print("Noisy training set size: %5d samples (%d + %d)" % (len(X_train), size[0], size[1]))
         print_distribution("Sentiment distribution", y_train)
-
-    # X_train1, y_train1 = dc.get_train_with_noisy(10, 5)
-    # # X_train1, y_train1 = dc.get_train(15)
-    # print(X_train1)
-    # X_train2, y_train2 = dc.get_train(10)
-    # print(X_train2)
-    # print(set(X_train1)-set(X_train2))
-
-    # df1 = data_center.df(dc.get_test(8000))
-    # df2 = data_center.df(dc.get_train(4000))
-    # print(df1.sentiment.value_counts())
-    # print(df2.sentiment.value_counts())
-    # dd = df2.sentiment.value_counts()
-    # print(dd[0],dd[1],dd[2],dd[3])
-    # print(len(set(df2['message'])-set(df1['message'])))
