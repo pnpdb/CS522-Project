@@ -8,8 +8,8 @@ class DataSize:
     # get training size with noisy data
     @staticmethod
     def GetTrainSizeWithNoisyData():
-        #return [(6000, 1500), (12000, 3000), (22500, 7500)]
-        return [(6000, 1500), (12000, 3000)]
+        return [(6000, 1500), (12000, 3000), (22500, 7500)]
+    
     @staticmethod
     def GetTestDataSize():
         return 4000
