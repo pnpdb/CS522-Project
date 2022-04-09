@@ -10,7 +10,7 @@ class data_center():
     # parameter: file name, size of the test set, size of the noisy set
     def __init__(self, filename, test_size, noisy_size, validation_size = 0):
         # load the original data set
-        df          = pd.read_csv(filename, encoding='UTF-8', usecols=[0,1])
+        df          = self.__read_csv_safe(filename)
         self.dfRaw  = df                                     # the raw set just load from the dataset file.
 
         # do some cleaning, such as drop the NAs, drop the duplicates
@@ -19,6 +19,7 @@ class data_center():
         df = df[df['message'] != None]
         df.dropna(inplace=True)
         df = df.drop_duplicates(subset=['message'],keep="first")
+        df = df.drop_duplicates(subset=['tweetid'],keep="first")
         self.class_count = len(df['sentiment'].value_counts(sort = False))
 
         self.dfOriginal         = df                    # let the cleaned set be the original set
@@ -50,8 +51,6 @@ class data_center():
     def __get_subset(self, start, set_size, size, distribution = None):
         dist = self.distribution if distribution is None else distribution
         df = self.dfOriginal[:0]
-        if size == 0:
-            aaa = 1
         for i in range(self.class_count):
             s = int(round(start * self.distribution[i]))    # Use original distribution for getting the start position
             c = int(round(size * dist[i]))                  # Use specific distribution to calc the size of every label
@@ -83,12 +82,17 @@ class data_center():
     # return: X and y of test set
     # distribution: the 'sentiment' distribution. None if use the distribution of the whole original set
     def get_test(self, size=None, distribution = None):
+        df = self.__get_test_df(size, distribution)
+        return list(df['message']), list(df['sentiment'])
+
+    #  Get a test set, in dataframe format
+    def __get_test_df(self, size=None, distribution = None):
         if size is None:
             size = self.test_size
         if size > self.test_size:
             raise Exception("The size is large than the max test size!")
         df = self.__get_subset(self.train_size, self.test_size, size, distribution)
-        return list(df['message']), list(df['sentiment'])
+        return df
 
     # Get a validation set
     # size: size of the validation set
@@ -150,6 +154,17 @@ class data_center():
                     lstFile.append(fn)
         return lstFile
 
+    # load a dataframe from csv
+    def __read_csv_safe(self, file):
+        lst = ['UTF-8','unicode_escape','utf-16','gb18030','ANSI','latin',"gbk"]
+        for encodeing in lst:
+            try:
+                df = pd.read_csv(file, encoding=encodeing)
+                return df
+            except:
+                pass
+        return pd.read_csv(file)
+
     # Add the external noisy data to the noisy set
     # None indicates use the same distribution as that of the whole original data
     # noisy_source: name of noisy source, like: irrelevant, translated
@@ -164,23 +179,23 @@ class data_center():
 
         lstMessage     = []
         lstSentiment   = []
-        dir = '.\\Noisy\\' + noisy_source + '\\'
+        lstTweetid     = []
+        dir = './Noisy/' + noisy_source + '/'
         lstFile = self.__enum_files(dir)
         for file in lstFile:
-            try:
-                df = pd.read_csv(dir + file, encoding='UTF-8')
-            except:
-                df = pd.read_csv(dir + file)
+            df = self.__read_csv_safe(dir + file)
             lstMessage  += list(df['message'])
             if reserve_labels:
                 lstSentiment   += list(df['sentiment'])
+                if 'tweetid' in df.columns.values:
+                    lstTweetid  += list(df['tweetid'])
 
         length = len(lstMessage)
         if not reserve_labels:
             lstMessage = sklearn.utils.shuffle(lstMessage, random_state=self.rseed)
             lstSentiment = []
             for i in range(self.class_count):
-                c = int(round(length * distribution[i]))                  # Use specific distribution to calc the size of every label
+                c = int(round(length * distribution[i])) # Use specific distribution to calc the size of every label
                 if i == self.class_count - 1:
                     c = length - len(lstSentiment)
                 lstSentiment += ([i]*c)
@@ -191,8 +206,15 @@ class data_center():
             df['message']   = lstMessage
         else:
             df = pd.DataFrame(lstSentiment, columns=['sentiment'])
-            df['message']   = lstMessage
             df['sentiment'] = df['sentiment'].astype("category").cat.codes
+            df['message']   = lstMessage
+
+            # use tweetid to drop samples which exists in test set
+            if len(lstTweetid) == length:
+                df['tweetid']   = lstTweetid
+                dfForDrop   = pd.concat([self.__get_test_df()[['sentiment','message','tweetid']], df])
+                dfForDrop   = dfForDrop.drop_duplicates(subset=['tweetid'],keep="first")
+                df          = dfForDrop[self.get_test_len():]
             df = sklearn.utils.shuffle(df, random_state=self.rseed)
 
         df = df[df['message'] != None]
