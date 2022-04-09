@@ -6,7 +6,7 @@ from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import LinearSVC
 from Common.DataCenter import data_center
 from Common.preprocessor import normalize_preprocessing
-from Common.UtilFuncs import print_evaluation
+from Common.UtilFuncs import print_evaluation, print_distribution
 
 # Text preprocessing
 # parameter: original X of training set and test set
@@ -52,13 +52,6 @@ def do_experiment(X_train, y_train, X_test, y_test):
 
     # Print the evaluation
     print_evaluation(y_test_vec, y_pred, labels=[0,1,2,3])
-
-# print the distribution of labels
-def print_distribution(hint, y):
-    df = data_center.df((y, y))
-    c = df['sentiment'].value_counts(sort = False)
-    l = len(df)
-    print("%s: %s" % (hint, ("%.1f%%, "*(len(c)-1)+"%.1f%%") % tuple([x*100/l for x in list(c)])))
 
 if __name__ == '__main__':
     # The size of the noise sources

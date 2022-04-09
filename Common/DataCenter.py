@@ -33,7 +33,8 @@ class data_center():
         self.dfNoisy            = None                  # the noisy set
 
         # the distribution of the whole original set
-        self.distribution       = [x/len(df) for x in list(df['sentiment'].value_counts(sort = False))]
+        # self.distribution       = [x/len(df) for x in list(df['sentiment'].value_counts(sort = False))]
+        self.distribution       = [list(df['sentiment']).count(x)/len(df) for x in range(self.class_count)]
 
     # Shuffle to generate all the data sets in a new way.
     def shuffle(self, rseed):
@@ -57,8 +58,8 @@ class data_center():
             if i == self.class_count - 1:
                 c = size - len(df)
             if c > int(round(set_size * self.distribution[i])+1):
-                print("Cannot generate the set with size %d and distribution %s!" \
-                      % (size, str(distribution)))
+                print("Cannot generate the set with size %d and distribution %f in a %d size set!" \
+                      % (size, dist[i], set_size))
                 exit(-1)
             if c > 0:
                 df  = pd.concat([df, self.dfs[i][s : s + c]])
@@ -73,7 +74,7 @@ class data_center():
         if size is None:
             size = self.train_size
         if size > self.train_size:
-            raise Exception("The size is large than the max train size!")
+            raise Exception("The size %d is large than the max train size %d!" % (size, self.train_size))
         df = self.__get_subset(0, self.train_size, size, distribution)
         return list(df['message']), list(df['sentiment'])
 
@@ -90,7 +91,7 @@ class data_center():
         if size is None:
             size = self.test_size
         if size > self.test_size:
-            raise Exception("The size is large than the max test size!")
+            raise Exception("The size %d is large than the max test size %d!" % (size, self.test_size))
         df = self.__get_subset(self.train_size, self.test_size, size, distribution)
         return df
 
@@ -102,7 +103,7 @@ class data_center():
         if size is None:
             size = self.validation_size
         if size > self.validation_size:
-            raise Exception("The size is large than the max validation size!")
+            raise Exception("The size %d is large than the max validation size %d!" % (size, self.validation_size))
         df = self.__get_subset(self.train_size + self.test_size, self.validation_size, size, distribution)
         return list(df['message']), list(df['sentiment'])
 
@@ -113,7 +114,7 @@ class data_center():
         if size is None:
             size = self.noisy_size
         if size > self.noisy_size:
-            raise Exception("The size is large than the max original noisy size!")
+            raise Exception("The size %d is large than the max original noisy size %d!" % (size, self.noisy_size))
 
         df = self.__get_subset(self.train_size + self.test_size + self.validation_size, self.noisy_size, size)
 
@@ -133,9 +134,10 @@ class data_center():
             df = self.dfNoisy
         else:
             if size > len(self.dfNoisy):
-                raise Exception("The size is large than the size of total noisy set!")
+                raise Exception("The size %d is large than the max total noisy size %d!" % (size, len(self.dfNoisy)))
         df = sklearn.utils.shuffle(self.dfNoisy, random_state=self.rseed)
-        df = df[:size]
+        if size is not None:
+            df = df[:size]
         return list(df['message']), list(df['sentiment'])
 
     # Reset the noisy set to the origianl noisy set

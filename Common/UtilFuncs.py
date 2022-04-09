@@ -1,4 +1,5 @@
 from sklearn.metrics import precision_score, recall_score, f1_score
+from Common.DataCenter import data_center
 # Print the evaluation
 def print_evaluation(y_true, y_pred, labels=[0,1,2,3]):
     f1scores = []
@@ -13,6 +14,13 @@ def print_evaluation(y_true, y_pred, labels=[0,1,2,3]):
 
     print("  micro_f1: %.3f , macro_f1: %.3f , weighted_f1: %.3f, macro_precision: %.3f, macro_recall: %.3f" %
           (micro_f1, macro_f1, weighted_f1, macro_precision, macro_recall))
+
+# print the distribution of labels
+def print_distribution(hint, y):
+    df = data_center.df((y, y))
+    l  = len(df)
+    c  = [y.count(x) for x in range(len(df.iloc[:,1].value_counts(sort = False)))]
+    print("%s: %s" % (hint, ("%.1f%%, "*(len(c)-1)+"%.1f%%") % tuple([x*100/l for x in list(c)])))
 
 class DataSize:
     # get the training size of baseline
