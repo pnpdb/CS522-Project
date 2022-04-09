@@ -61,8 +61,16 @@ def print_distribution(hint, y):
     print("%s: %s" % (hint, ("%.1f%%, "*(len(c)-1)+"%.1f%%") % tuple([x*100/l for x in list(c)])))
 
 if __name__ == '__main__':
+    # The size of the noise sources
+    noisy_set_sizes = {
+        'mislabeled' : 5000,   # max size: 15000
+        'irrelevant' : 5000,   # max size: 34259
+        'translated' : 5000,   # max size: 5000
+    }
+
     # Load the database and split it into training set, test set, noisy set, validation set
-    dc = data_center("twitter_sentiment_data_clean.csv", test_size=4000, validation_size=1000, noisy_size=6000)
+    dc = data_center("twitter_sentiment_data_clean.csv", test_size = 4000, validation_size = 1000,
+                     noisy_size = noisy_set_sizes['mislabeled'])
 
     print("####################################################")
     print("Total data size: ",       dc.get_len())
@@ -78,21 +86,20 @@ if __name__ == '__main__':
     # distribution of training set
     train_distribution = None
 
-    # distribution of external noisy
-    external_noisy_distribution = [0.25, 0.25, 0.25, 0.25]
-
     lstNoisyInfo = [("mislabeled",dc.get_noisy_len())]
     print("Noisy set size is %d"                % dc.get_noisy_len())
 
     # add the external noisy data (irrelevant texts)
-    added_size = dc.add_noisy(noisy_source="irrelevant",
-                              distribution = external_noisy_distribution, size = 6000) # max size: 34259
+    # distribution of irrelevant noisy
+    irrelevant_noisy_distribution = [0.25, 0.25, 0.25, 0.25]    # None, if use the distribution of original set
+    added_size = dc.add_noisy(noisy_source="irrelevant", distribution = irrelevant_noisy_distribution,
+                              size = noisy_set_sizes['irrelevant'])
     print("%d noisy samples added" % added_size)
     lstNoisyInfo.append(("irrelevant",added_size))
 
-    # add the external noisy data (translated texts)
-    added_size = dc.add_noisy(noisy_source="translated",
-                              distribution = "reserve_labels", size = 6000) # max size: 6146
+    # add the external noisy data (translated texts). use the labels of each noisy data
+    added_size = dc.add_noisy(noisy_source="translated", distribution = "reserve_labels",
+                              size = noisy_set_sizes['translated'])
     print("%d noisy samples added" % added_size)
     lstNoisyInfo.append(("translated",added_size))
 

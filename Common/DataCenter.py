@@ -168,7 +168,9 @@ class data_center():
     # Add the external noisy data to the noisy set
     # None indicates use the same distribution as that of the whole original data
     # noisy_source: name of noisy source, like: irrelevant, translated
-    # distribution: distribution of the noisy
+    # distribution: distribution of the noisy.
+    #               None: use the distribution of original set
+    #               "reserve_labels": use the labels of each noisy data.
     # size: size of noisy to be add. None indicates all noisy data will be added
     def add_noisy(self, noisy_source, distribution = None, size = None):
         reserve_labels = False
