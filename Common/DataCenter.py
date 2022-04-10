@@ -3,6 +3,7 @@ import os
 import random
 import sklearn
 from sklearn.model_selection import train_test_split
+import numpy as np
 
 # A class manager the data, which loads the data, generates a test set and train sets with different sizes,
 # and add noisy data to these train sets.
@@ -17,9 +18,11 @@ class data_center():
         df                = df.copy()
         df['sentiment'] = df['sentiment'].astype("category").cat.codes
         df = df[df['message'] != None]
-        df.dropna(inplace=True)
+        df.dropna(inplace=True) # remove the rows which has NaN values
         df = df.drop_duplicates(subset=['message'],keep=False)
-        self.class_count = len(df['sentiment'].value_counts(sort = False))
+
+        self.class_types = np.unique(df['sentiment'])
+        self.class_count = len(df['sentiment'].value_counts(sort=False))
 
         self.dfOriginal         = df                    # let the cleaned set be the original set
         self.shuffle(rseed = 522)                       # shuffle the original set
@@ -32,7 +35,7 @@ class data_center():
         self.dfNoisy            = None                  # the noisy set
 
         # the distribution of the whole original set
-        self.distribution       = [x/len(df) for x in list(df['sentiment'].value_counts(sort = False))]
+        self.distribution = [x/len(df) for x in list(df['sentiment'].value_counts(sort=False))]
 
     # Shuffle to generate all the data sets in a new way.
     def shuffle(self, rseed):
@@ -266,13 +269,18 @@ class data_center():
     def df(Xy):
         return pd.DataFrame({'message':Xy[0] , 'sentiment':Xy[1]})
 
-if __name__ == '__main__':
-    def print_distribution(hint, y):
+    @staticmethod
+    def print_distribution(hint, y, print_flag=True):
         df = data_center.df((y, y))
         c = df['sentiment'].value_counts(sort = False)
         l = len(df)
-        print("%s: %s" % (hint, ("%.1f%%, "*(len(c)-1)+"%.1f%%") % tuple([x*100/l for x in list(c)])))
+        dist = tuple([x*100/l for x in list(c)])
+        if print_flag:
+            print("%s: %s" % (hint, ("%.1f%%, "*(len(c)-1)+"%.1f%%") % dist))
+        return dist
 
+
+if __name__ == '__main__':
     #Split the original data set into 3 parts: training set, test set, noisy set
     dc = data_center("twitter_sentiment_data.csv", test_size=4000, noisy_size=3000)
     dc.shuffle(rseed = 522) # Shuffle to setup a new series of experiments
@@ -285,7 +293,7 @@ if __name__ == '__main__':
     print("Test set size is %d"                 % dc.get_test_len())
     print("Noisy set size is %d"                % dc.get_noisy_len())
     print("Validation set size is %d"           % len(dc.get_validation()[0]))
-    print_distribution("Sentiment distribution of the whole training set", y_train)
+    data_center.print_distribution("Sentiment distribution of the whole training set", y_train)
 
     print("\nGenerate training set with different sizes:")
     print("-----------------------------------------------------------------------")
@@ -302,10 +310,10 @@ if __name__ == '__main__':
     for size in [6000, 7500, 12000, 15000, 22500, 30000]:     # training set sizes represented in absolute values
         X_train, y_train = dc.get_train(size, train_distribution)
         print("Training set size: %5d samples" % (len(y_train)))
-        print_distribution("Sentiment distribution", y_train)
+        data_center.print_distribution("Sentiment distribution", y_train)
 
     print("-----------------------------------------------------------------------")
     for size in [(6000, 1500), (12000, 3000), (22500, 7500)]:     # training set sizes represented in absolute values
         X_train, y_train = dc.get_train_with_noisy(size[0], size[1], train_distribution)
         print("Noisy training set size: %5d samples (%d + %d)" % (len(X_train), size[0], size[1]))
-        print_distribution("Sentiment distribution", y_train)
+        data_center.print_distribution("Sentiment distribution", y_train)
