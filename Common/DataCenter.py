@@ -8,14 +8,17 @@ from sklearn.model_selection import train_test_split
 # and add noisy data to these train sets.
 class data_center():
     # parameter: file name, size of the test set, size of the noisy set
-    def __init__(self, filename, test_size, noisy_size, validation_size = 0):
+    def __init__(self, filename, test_size, noisy_size, validation_size = 0, train_size = 20000):
         # load the original data set
         df          = self.__read_csv_safe(filename)
         self.dfRaw  = df                                     # the raw set just load from the dataset file.
 
         # do some cleaning, such as drop the NAs, drop the duplicates
         df                = df.copy()
-        df['sentiment'] = df['sentiment'].astype("category").cat.codes
+        # df['sentiment'] = df['sentiment'].astype("category").cat.codes
+        df['sentiment'] = df['sentiment'].astype("int")
+        df['sentiment'] = df['sentiment'].apply(lambda x: x+1)
+
         df = df[df['message'] != None]
         df.dropna(inplace=True)
         df = df.drop_duplicates(subset=['message'],keep="first")
@@ -24,12 +27,13 @@ class data_center():
 
         self.dfOriginal         = df                    # let the cleaned set be the original set
         self.shuffle(rseed = 522)                       # shuffle the original set
-        self.train_size         = len(df) - test_size - noisy_size - validation_size
+        self.train_size         = train_size if train_size is not None else len(df) - test_size - noisy_size - validation_size
         self.test_size          = test_size
         self.validation_size    = validation_size
         self.noisy_size         = noisy_size
+        if self.train_size + self.test_size + self.validation_size + self.noisy_size > len(df):
+            raise Exception("The sum of the size of all sets is bigger than the size of the whole data set!" % (size, self.train_size))
 
-        self.dfOriginal         = df                    # let the cleaned set be the original set
         self.dfNoisy            = None                  # the noisy set
 
         # the distribution of the whole original set
@@ -66,16 +70,21 @@ class data_center():
         df = sklearn.utils.shuffle(df[:size], random_state=self.rseed)
         return df
 
-    # Get the train set
-    # size: size of the train set
-    # return: X and y of training set
-    # distribution: the 'sentiment' distribution. None if use the distribution of the whole original set
-    def get_train(self, size=None, distribution = None):
+    # Get the train set in dataframe format
+    def __get_train_df(self, size=None, distribution = None):
         if size is None:
             size = self.train_size
         if size > self.train_size:
             raise Exception("The size %d is large than the max train size %d!" % (size, self.train_size))
         df = self.__get_subset(0, self.train_size, size, distribution)
+        return df
+
+    # Get the train set
+    # size: size of the train set
+    # return: X and y of training set
+    # distribution: the 'sentiment' distribution. None if use the distribution of the whole original set
+    def get_train(self, size=None, distribution = None):
+        df = self.__get_train_df(size, distribution)
         return list(df['message']), list(df['sentiment'])
 
     # Get a test set
@@ -130,11 +139,8 @@ class data_center():
     def get_noisy(self, size = None):
         if self.dfNoisy is None:
             self.dfNoisy = self.get_original_noisy()
-        if size is None:
-            df = self.dfNoisy
-        else:
-            if size > len(self.dfNoisy):
-                raise Exception("The size %d is large than the max total noisy size %d!" % (size, len(self.dfNoisy)))
+        if size is not None and size > len(self.dfNoisy):
+            raise Exception("The size %d is large than the total noisy size %d!" % (size, len(self.dfNoisy)))
         df = sklearn.utils.shuffle(self.dfNoisy, random_state=self.rseed)
         if size is not None:
             df = df[:size]
@@ -210,15 +216,18 @@ class data_center():
             df['message']   = lstMessage
         else:
             df = pd.DataFrame(lstSentiment, columns=['sentiment'])
-            df['sentiment'] = df['sentiment'].astype("category").cat.codes
+            # df['sentiment'] = df['sentiment'].astype("category").cat.codes
+            df['sentiment'] = df['sentiment'].astype("int")
+            df['sentiment'] = df['sentiment'].apply(lambda x: x+1)
             df['message']   = lstMessage
 
-            # use tweetid to drop samples which exists in test set
             if len(lstTweetid) == length:
+                # use tweetid to drop samples which exists in test set
                 df['tweetid']   = lstTweetid
                 dfForDrop   = pd.concat([self.__get_test_df()[['sentiment','message','tweetid']], df])
                 dfForDrop   = dfForDrop.drop_duplicates(subset=['tweetid'],keep="first")
                 df          = dfForDrop[self.get_test_len():]
+
             df = sklearn.utils.shuffle(df, random_state=self.rseed)
 
         df = df[df['message'] != None]
@@ -230,9 +239,15 @@ class data_center():
                 raise Exception("The size is large than the size of noisy source!")
             df  = df[:size]
 
+        if 'tweetid' not in df.columns.values:
+            df['tweetid']   = [-1] * len(df)
+
         if self.dfNoisy is None:
             self.dfNoisy = self.get_original_noisy()
-        self.dfNoisy    = pd.concat([self.dfNoisy, df])
+        if len(self.dfNoisy):
+            self.dfNoisy    = pd.concat([self.dfNoisy, df])
+        else:
+            self.dfNoisy    = df
         return len(df)
 
     # Get the train set with noisy data
@@ -240,13 +255,22 @@ class data_center():
     # noisy_size:    size of the noisy data
     # distribution: the 'sentiment' of original train set. None if use the distribution of the whole original set
     def get_train_with_noisy(self, original_size = None, noisy_size = None, distribution = None):
-        X_train, y_train   = self.get_train(original_size, distribution)
+        dfTrain   = self.__get_train_df(original_size, distribution)
         if noisy_size is None:
-            return X_train, y_train
-        X_noisy, y_noisy   = self.get_noisy(noisy_size)
-        df = pd.DataFrame(X_train + X_noisy, columns=['message'])
-        df['sentiment'] = y_train + y_noisy
+            return list(dfTrain['message']), list(dfTrain['sentiment'])
+
+        if self.dfNoisy is None:
+            self.dfNoisy = self.get_original_noisy()
+
+        dfNoisy  = self.dfNoisy[~self.dfNoisy['tweetid'].isin(dfTrain['tweetid'])]
+        if noisy_size > len(dfNoisy):
+            raise Exception("Requiring %d noisy data, but only %d available!" % (noisy_size, len(dfNoisy)))
+        dfNoisy = sklearn.utils.shuffle(dfNoisy, random_state=self.rseed)  #shuffle
+        dfNoisy = dfNoisy[:noisy_size]
+
+        df = pd.concat([dfTrain, dfNoisy])
         df = sklearn.utils.shuffle(df, random_state=self.rseed)  #shuffle
+
         return list(df['message']), list(df['sentiment'])
 
     # Get the size of the raw set

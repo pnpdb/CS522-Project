@@ -62,8 +62,8 @@ if __name__ == '__main__':
     }
 
     # Load the database and split it into training set, test set, noisy set, validation set
-    dc = data_center("twitter_sentiment_data_clean.csv", test_size = 4000, validation_size = 1000,
-                     noisy_size = noisy_set_sizes['mislabeled'])
+    dc = data_center("twitter_sentiment_data_clean.csv", train_size = 20000, test_size = 4000, validation_size = 1000,
+                     noisy_size = noisy_set_sizes['mislabeled'] if 'mislabeled' in noisy_set_sizes.keys() else 0)
 
     print("####################################################")
     print("Total data size: ",       dc.get_len())
@@ -79,24 +79,29 @@ if __name__ == '__main__':
     # distribution of training set
     train_distribution = None
 
-    lstNoisyInfo = [("mislabeled",dc.get_noisy_len())]
-    print("Noisy set size is %d"                % dc.get_noisy_len())
+    # Prepare noisy data sets
+    lstNoisyInfo    = []
+    if 'mislabeled' in noisy_set_sizes.keys() and noisy_set_sizes['mislabeled'] > 0:
+        lstNoisyInfo.append(("mislabeled",dc.get_noisy_len()))
+        print("%d noisy samples of '%s' added" % (dc.get_noisy_len(), 'mislabeled'))
 
     # add the external noisy data (irrelevant texts)
-    # distribution of irrelevant noisy
-    irrelevant_noisy_distribution = [0.25, 0.25, 0.25, 0.25]    # None, if use the distribution of original set
-    added_size = dc.add_noisy(noisy_source="irrelevant", distribution = irrelevant_noisy_distribution,
-                              size = noisy_set_sizes['irrelevant'])
-    print("%d noisy samples added" % added_size)
-    lstNoisyInfo.append(("irrelevant",added_size))
+    if 'irrelevant' in noisy_set_sizes.keys() and noisy_set_sizes['irrelevant'] > 0:
+        # distribution of irrelevant noisy
+        irrelevant_noisy_distribution = [0.25, 0.25, 0.25, 0.25]    # None, if use the distribution of original set
+        added_size = dc.add_noisy(noisy_source="irrelevant", distribution = irrelevant_noisy_distribution,
+                                  size = noisy_set_sizes['irrelevant'])
+        print("%d noisy samples of '%s' added"  % (added_size, 'irrelevant'))
+        lstNoisyInfo.append(("irrelevant",added_size))
 
     # add the external noisy data (translated texts). use the labels of each noisy data
-    added_size = dc.add_noisy(noisy_source="translated", distribution = "reserve_labels",
-                              size = noisy_set_sizes['translated'])
-    print("%d noisy samples added" % added_size)
-    lstNoisyInfo.append(("translated",added_size))
+    if 'translated' in noisy_set_sizes.keys() and noisy_set_sizes['translated'] > 0:
+        added_size = dc.add_noisy(noisy_source="translated", distribution = "reserve_labels",
+                                  size = noisy_set_sizes['translated'])
+        print("%d noisy samples of '%s' added"  % (added_size, 'translated'))
+        lstNoisyInfo.append(("translated",added_size))
 
-    print("Noisy set new size is %d"                % dc.get_noisy_len())
+    print("The total size of noisy data is %d"                % dc.get_noisy_len())
 
     # Run experiments with different training sets, and use the same test set.
     print("-------------- No noisy training sets ----------")
@@ -113,7 +118,7 @@ if __name__ == '__main__':
     print("-------------- Noisy training sets -------------")
     print("The proportions of the noise sources %s: " % [x[0] for x in lstNoisyInfo],
           [round(x[1]*100/dc.get_noisy_len(),1) for x in lstNoisyInfo])
-    for size in [(4000, 1000), (8000, 3000), (15000, 5000)]:
+    for size in [(4000, 1000), (8000, 2000), (15000, 5000)]:
         # Get a noisy training set
         X_train, y_train = dc.get_train_with_noisy(size[0], size[1], train_distribution)
         print("* Noisy training set size: %d samples (%d original, %d noisy)" % (len(y_train), size[0], size[1]))
