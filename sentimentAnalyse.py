@@ -216,7 +216,7 @@ def plot_report(y_test, y_predict, args=None):
 def get_rand_name():
     now = datetime.datetime.now()
     dt = datetime.datetime.strftime(now, '%Y%m%d%H%M%S')
-    rand = random.randint(1, 4)
+    rand = random.randint(10**3, 10**4-1)
     return "%s-%s" % (dt, rand)
 
 
@@ -378,7 +378,7 @@ if __name__ == '__main__':
     groups = 7
     configs = [
         {  # svm -debug
-            "enabled": 1,
+            "enabled": 0,
             "model": "SVM",
             "train": [100, 200, 300],
             "validate": 100,
