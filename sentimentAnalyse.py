@@ -217,7 +217,7 @@ def get_rand_name():
     now = datetime.datetime.now()
     dt = datetime.datetime.strftime(now, '%Y%m%d%H%M%S')
     rand = random.randint(1, 4)
-    return "%s-%s" % dt, rand
+    return "%s-%s" % (dt, rand)
 
 
 def get_report_summary(report):
@@ -378,7 +378,7 @@ if __name__ == '__main__':
     groups = 7
     configs = [
         {  # svm -debug
-            "enabled": 0,
+            "enabled": 1,
             "model": "SVM",
             "train": [100, 200, 300],
             "validate": 100,
