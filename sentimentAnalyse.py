@@ -16,10 +16,14 @@ from transformers import DistilBertTokenizerFast, DistilBertForSequenceClassific
 from Common.DataCenter import data_center
 from Common.preprocessor import normalize_preprocessing as normalize
 import time
+import json
+import random
+import datetime
 
 class_names = ['Anti', 'Neutral', 'Pro', 'News']
 class_types = [0, 1, 2, 3]
 show_confusion_matrix = False
+outpath = './results/report/'
 show_plot = False
 
 
@@ -39,8 +43,8 @@ def get_data(file_name, train_size, validation_size, test_size, noisy_size, name
     dc = data_center(file_name, test_size, noisy_size, validation_size)
     dc.add_noisy(noisy_source="irrelevant", distribution=noisy_distribution, size=noisy_size)
 
-    noisy_distr = None # [0.25, 0.25, 0.25, 0.25]
-    if(noisy_size==0):
+    noisy_distr = None  # [0.25, 0.25, 0.25, 0.25]
+    if(noisy_size == 0):
         X_train, y_train = dc.get_train(train_size, train_distribution)
     else:
         X_train, y_train = dc.get_train_with_noisy(train_size, noisy_size, noisy_distr)
@@ -50,7 +54,7 @@ def get_data(file_name, train_size, validation_size, test_size, noisy_size, name
     X_noisy, y_noisy = dc.get_noisy()
 
     dists = data_center.print_distribution('', y_train, False)
-    dist = {class_names[i]:"%.1f%%"%dists[i] for i in range(len(dists))}
+    dist = {class_names[i]: "%.1f%%" % dists[i] for i in range(len(dists))}
     print('%s, TrainSet:%s, ValidateSet:%s, TestSet:%s, NoisySet:%s, SentimentDistribution(Training): %s' % (name, len(X_train), len(X_validate), len(X_test), len(X_noisy), dist))
 
     return X_train, y_train, X_validate, y_validate, X_test, y_test, X_noisy, y_noisy
@@ -98,7 +102,7 @@ def tokenizer(X_train,  y_train, X_test, y_test, params={}):
     y_test_encoded = y_test
     if(params["one_hot_encoding"] == True):
         mlb = MultiLabelBinarizer()
-        y_train_encoded  = mlb.fit_transform(map(str, y_train))
+        y_train_encoded = mlb.fit_transform(map(str, y_train))
         y_test_encoded = mlb.transform(map(str, y_test))
 
     return x_train_normalized, y_train_encoded, x_test_normalized, y_test_encoded
@@ -134,8 +138,8 @@ def svm_fit(x_train, y_train, x_test, y_test, kernel='linear', dataset_type='tra
     t4 = time.time()
 
     # Report the accurency
-    report = plot_report(y_test, y_predict, {"name": "SVM-"+kernel, "data_type": dataset_type, "eval_loss": 0, "preprocess": round(t2-t1,3), "train": round(t3-t2,3), "predict": round(t4-t3,3)})
-    if (not hasattr(report,"accuracy")):
+    report = plot_report(y_test, y_predict, {"name": "SVM-"+kernel, "data_type": dataset_type, "eval_loss": 0, "preprocess": round(t2-t1, 3), "train": round(t3-t2, 3), "predict": round(t4-t3, 3)})
+    if (not hasattr(report, "accuracy")):
         score = model.score(x_test_vectors, y_test)
         report["accuracy"] = score
 
@@ -209,6 +213,13 @@ def plot_report(y_test, y_predict, args=None):
     return report
 
 
+def get_rand_name():
+    now = datetime.datetime.now()
+    dt = datetime.datetime.strftime(now, '%Y%m%d%H%M%S')
+    rand = random.randint(1, 4)
+    return "%s-%s" % dt, rand
+
+
 def get_report_summary(report):
     macro_avg = report["macro avg"]
     args = report["args"]
@@ -222,16 +233,17 @@ def get_report_summary(report):
         "Macro-F1": macro_avg["f1-score"],
         "Macro-precision": macro_avg["precision"],
         "Macro-recall": macro_avg["recall"],
-        "Macro-F1":  report["weighted avg"]["f1-score"],
+        "Weighted-F1":  report["weighted avg"]["f1-score"],
         "Time-Preprocess(s)": args["preprocess"],
         "Time-Train(s)": args["train"],
         "Time-Predict(s)": args["predict"]
     }
     return report_simple
 
+
 def plot_item(report, xvalue_name, yvalue_name, title_value_name='', plot_data_type=["train"]):
     # Plot the firgues
-    names = [item["Name"] for item in  report["train_report"] ]
+    names = [item["Name"] for item in report["train_report"]]
     names = np.unique(names)
 
     data_types = [item["DataType"] for item in report["train_report"]]
@@ -249,12 +261,14 @@ def plot_item(report, xvalue_name, yvalue_name, title_value_name='', plot_data_t
                 data_size = x
             plot.plot(x, y, label=name+'-'+dt)
 
-    plot.title('%s %s with NoisySet %s' % (report["model"], yvalue_name,report[title_value_name] ))
+    plot.title('%s %s with NoisySet %s' % (report["model"], yvalue_name, report[title_value_name]))
     plot.xticks(data_size)
     plot.xlabel(xvalue_name)
     plot.ylabel(xvalue_name)
     plot.legend()
-    plot.show()
+    plot.savefig('%s%s-%s-%s.png' % (outpath, report["title"], yvalue_name,get_rand_name()), bbox_inches='tight')
+    if show_plot:
+        plot.show()
 
 
 def summary(result):
@@ -269,7 +283,7 @@ def summary(result):
         if i == 0:
             report["model"] = result[i]["model"]
             report["index"] = result[i]["index"]
-            report["title"] = "## %s %s-Noisy %s" % (report["index"], report["model"], report["noisy_size"])
+            report["title"] = "%s.%s" % (report["index"], report["model"])
 
         report["noisy_size"].append(result[i]["noisy"])
         train_report = get_report_summary(result[i]["train_report"])
@@ -282,7 +296,7 @@ def summary(result):
         train_reports_detail.append(result[i]["train_report"])
         validate_reports_detail.append(result[i]["validate_report"])
 
-    train_reports.sort(key=lambda r: r["TrainSize"]*100000+ r["Accuracy"])
+    train_reports.sort(key=lambda r: r["TrainSize"]*100000 + r["Accuracy"])
     validate_reports.sort(key=lambda r: r["TrainSize"]*100000 + r["Accuracy"])
     report['train_report'] = train_reports
     report['validate_report'] = validate_reports
@@ -293,14 +307,27 @@ def summary(result):
     report['validate_report_detail'] = validate_reports_detail
 
     noises = np.unique(report["noisy_size"])
-    report["noisy_size"] = '/'.join(['%s' % v for v in noises])
+    report["noisy_size"] = '-'.join(['%s' % v for v in noises])
+    report["title"] = "%s with Noisy %s" % (report["title"], report["noisy_size"])
 
     train_reports.extend(validate_reports)
-    print(pd.DataFrame(train_reports))
+    simple_result = pd.DataFrame(train_reports)
+    print(simple_result)
 
+    try:
+        file_name = "%s%s-%s.txt" % (outpath, report["title"],get_rand_name())
+        file_name_json = "%s%s-%s.json" % (outpath, report["title"], get_rand_name())
+        with open(file_name, 'w') as f:
+            f.write("%s" % simple_result)
+        with open(file_name_json, 'w') as f:
+            json.dump(report, f)
+    except Exception as e:
+        print('WriteFileError', e)
+
+    # Plot the result
     outputs = [
-        ['TrainSize', 'Accuracy', 'noisy_size'], 
-        ['TrainSize', 'Macro-F1', 'noisy_size'], 
+        ['TrainSize', 'Accuracy', 'noisy_size'],
+        ['TrainSize', 'Macro-F1', 'noisy_size'],
         ['TrainSize', 'Macro-precision', 'noisy_size'],
         ['TrainSize', 'Loss', 'noisy_size']
     ]
@@ -328,7 +355,7 @@ def predict(filename, configs):
                 # SVM kernels
                 for j in range(len(params["kernel"])):
                     name = '%s. %s-%s ' % (i+1, model, params["kernel"][j])
-                    report = svm_fit(X_train, y_train, X_test, y_test, params["kernel"][j], "train" , params)
+                    report = svm_fit(X_train, y_train, X_test, y_test, params["kernel"][j], "train", params)
                     report_validate = svm_fit(X_validate, y_validate, X_test, y_test, params["kernel"][j], "validate", params)
                     result.append({"index": i+1, "model": model, "train": train_sizes[i], "validate": validate_size, "test": test_size, "noisy": noisy_sizes[i], "train_report": report, "validate_report": report_validate})
 
@@ -353,25 +380,25 @@ if __name__ == '__main__':
         {  # svm -debug
             "enabled": 0,
             "model": "SVM",
-            "train": [100,200,300],
+            "train": [100, 200, 300],
             "validate": 100,
             "test": 110,
-            "noisy":[80,90,100],
-            "params":{"kernel": ['linear', 'poly', 'rbf', 'sigmoid'], "tokenizer":True,"one_hot_encoding":True }  # Not support 'precomputed'
+            "noisy":[80, 90, 100],
+            "params":{"kernel": ['linear', 'poly', 'rbf', 'sigmoid'], "tokenizer":True, "one_hot_encoding":True}  # Not support 'precomputed'
         },
         {  # bert -debug
             "enabled": 0,
             "model": "Bert",
-            "train": [10,20,30],
+            "train": [10, 20, 30],
             "validate": 10,
             "test": 10,
-            "noisy":[0,0,0],
+            "noisy":[0, 0, 0],
             "params":{"kernel": ''}
         },
 
-        
+
         {  # svm with no tokenizer , one_hot_encoding，无噪音情况下tokenizer和one_hot_encoding会降低精度
-            "enabled": 0,
+            "enabled": 1,
             "model": "SVM",
             "train": [2000, 4000, 5000, 8000, 10000, 15000, 20000],
             "validate": 1000,
@@ -380,7 +407,7 @@ if __name__ == '__main__':
             "params":{"kernel": ['linear', 'poly', 'rbf', 'sigmoid'], "tokenizer":False, "one_hot_encoding":False}
         },
         {  # svm with tokenizer, one_hot_encoding
-            "enabled": 0,
+            "enabled": 1,
             "model": "SVM",
             "train": [2000, 4000, 5000, 8000, 10000, 15000, 20000],
             "validate": 1000,
@@ -395,16 +422,16 @@ if __name__ == '__main__':
             "validate": 1000,
             "test": 4000,
             "noisy":[1000, 2000, 5000],
-            "params":{"kernel": ['linear'], "tokenizer":False, "one_hot_encoding":False} 
+            "params":{"kernel": ['linear'], "tokenizer":False, "one_hot_encoding":False}
         },
         {  # svm - noisy with tokenizer , one_hot_encoding
             "enabled": 1,
             "model": "SVM",
-            "train": [ 4000,  8000, 15000],
+            "train": [4000,  8000, 15000],
             "validate": 1000,
             "test": 4000,
             "noisy":[1000, 2000, 5000],
-            "params":{"kernel": ['linear'], "tokenizer":True, "one_hot_encoding":True} 
+            "params":{"kernel": ['linear'], "tokenizer":True, "one_hot_encoding":True}
         },
         {  # bert
             "enabled": 0,
