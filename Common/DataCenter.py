@@ -71,12 +71,13 @@ class data_center():
         return df
 
     # Get the train set in dataframe format
-    def __get_train_df(self, size=None, distribution = None):
+    def get_train_df(self, size=None, distribution = None):
         if size is None:
             size = self.train_size
         if size > self.train_size:
             raise Exception("The size %d is large than the max train size %d!" % (size, self.train_size))
         df = self.__get_subset(0, self.train_size, size, distribution)
+        df['noise'] = 0
         return df
 
     # Get the train set
@@ -84,7 +85,7 @@ class data_center():
     # return: X and y of training set
     # distribution: the 'sentiment' distribution. None if use the distribution of the whole original set
     def get_train(self, size=None, distribution = None):
-        df = self.__get_train_df(size, distribution)
+        df = self.get_train_df(size, distribution)
         return list(df['message']), list(df['sentiment'])
 
     # Get a test set
@@ -254,8 +255,9 @@ class data_center():
     # original_size: size of the data from the original train set
     # noisy_size:    size of the noisy data
     # distribution: the 'sentiment' of original train set. None if use the distribution of the whole original set
-    def get_train_with_noisy(self, original_size = None, noisy_size = None, distribution = None):
-        dfTrain   = self.__get_train_df(original_size, distribution)
+    # return : A dataframe with columns : message, sentiment, tweetid, noise
+    def get_train_with_noisy_df(self, original_size = None, noisy_size = None, distribution = None):
+        dfTrain   = self.get_train_df(original_size, distribution)
         if noisy_size is None:
             return list(dfTrain['message']), list(dfTrain['sentiment'])
 
@@ -267,10 +269,16 @@ class data_center():
             raise Exception("Requiring %d noisy data, but only %d available!" % (noisy_size, len(dfNoisy)))
         dfNoisy = sklearn.utils.shuffle(dfNoisy, random_state=self.rseed)  #shuffle
         dfNoisy = dfNoisy[:noisy_size]
+        dfNoisy['noise'] = 1
 
         df = pd.concat([dfTrain, dfNoisy])
         df = sklearn.utils.shuffle(df, random_state=self.rseed)  #shuffle
 
+        return df
+
+    # Similary as get_train_with_noisy_df, but return X, y
+    def get_train_with_noisy(self, original_size = None, noisy_size = None, distribution = None):
+        df = self.get_train_with_noisy_df(original_size, noisy_size, distribution)
         return list(df['message']), list(df['sentiment'])
 
     # Get the size of the raw set
