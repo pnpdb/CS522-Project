@@ -3,9 +3,7 @@ import os
 import random
 import sklearn
 from sklearn.model_selection import train_test_split
-from sklearn.model_selection import StratifiedShuffleSplit
-import numpy as np
-
+from IPython.display import display
 
 # A class manager the data, which loads the data, generates a test set and train sets with different sizes,
 # and add noisy data to these train sets.
@@ -505,7 +503,21 @@ class data_center():
         df['tweetid(partial)']  = df['tweetid'].apply(lambda x: int(x/1000000000000) if x > 0 else x)
         df['message(partial)']  = df['message'].apply(lambda x: x[:30])
         df['origin(sentiment)'] = df['origin'].fillna(-1).astype(int)
-        print(df[['noise','noise_text','sentiment','origin(sentiment)','tweetid(partial)','message(partial)']].to_string(index=False))
+
+        df = df[['noise','noise_text','sentiment','origin(sentiment)','tweetid(partial)','message(partial)']]
+        if(data_center.is_ipython()):
+            display(df)
+        else:
+            print(df.to_string(index=False))
+
+    @staticmethod
+    # if in ipython
+    def is_ipython():
+        try:
+            __IPYTHON__
+            return True
+        except NameError:
+            return False
 
 if __name__ == '__main__':
     print("\nPrepare data:")

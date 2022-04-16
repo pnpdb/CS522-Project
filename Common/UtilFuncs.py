@@ -1,6 +1,7 @@
 from sklearn.metrics import precision_score, recall_score, f1_score
-from Common.DataCenter import data_center
+from IPython.display import display
 import pandas as pd
+import matplotlib.pyplot as plt
 
 # Print the evaluation
 def print_evaluation(y_true, y_pred, labels=[0,1,2,3]):
@@ -35,7 +36,7 @@ def EvaluationToDF(title, y_true, y_pred, labels=[0,1,2,3]):
 
 # print the distribution of labels
 def print_distribution(hint, y):
-    df = data_center.df((y, y))
+    df = pd.DataFrame({'sentiment':y})
     l  = len(df)
     c  = [y.count(x) for x in range(len(df.iloc[:,1].value_counts(sort = False)))]
     print("%s: %s" % (hint, ("%.1f%%, "*(len(c)-1)+"%.1f%%") % tuple([x*100/l for x in list(c)])))
@@ -52,7 +53,7 @@ class Evaluator():
         self.last_index  = 0
 
     def get_evaluate(self):
-        return self.evaluateDF
+        return self.evaluateDF.set_index("Experiment")
 
     def clear(self):
         self.evaluateDF = None
@@ -90,14 +91,42 @@ class Evaluator():
             self.evaluateDF = df
         else:
             self.evaluateDF = pd.concat([self.evaluateDF,df],axis=0)
+        self.evaluateDF.sort_values(by="Experiment", inplace=True, ascending=True)
 
     def print(self):
         if self.evaluateDF is not None:
             df = self.evaluateDF[[ 'Experiment', 'Origin', 'Noise', 'Denoised', 'Micro F1', 'Macro F1',
                                    'Weighted F1', 'Macro Precision', 'Macro Recall', 'F1 of classes',
                                    'Sentiments distribution', 'Noise sources distribution' ]]
-            # df.set_index('Index', inplace = True)
-            print(df.to_string(index=False))
+            display(df.set_index("Experiment"))
+
+    def plot(self, xValue, yValue, lines, title="Plot", xLabel=None, yLabel=None, colors = None, df=None):
+        if colors is None:
+            colors = ['green', 'red', 'blue', 'brown', 'pink', 'black']
+        if xLabel is None:
+            xLabel = xValue.replace("x['","")
+            xLabel = xLabel.replace("']","")
+        if yLabel is None:
+            yLabel = yValue.replace("y['","")
+            yLabel = yLabel.replace("']","")
+        if df is None:
+            df = self.evaluateDF.set_index("Experiment")
+
+        fig, ax = plt.subplots()
+        plt.title(title)
+        i = 0
+        for k, v in lines.items():
+            index_line = df.apply(lambda df: eval(v), axis=1)
+            df_line    = df[index_line]
+            x = df_line.apply(lambda x: eval(xValue), axis=1)
+            y = df_line.apply(lambda y: eval(yValue), axis=1)
+            ax.plot(x, y, colors[i], label=k)
+            i = (i+1) % len(colors)
+
+        plt.legend()
+        plt.xlabel(xLabel)
+        plt.ylabel(yLabel)
+        plt.show()
 
 class DataSize:
     # get the training size of baseline

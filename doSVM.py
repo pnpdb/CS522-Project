@@ -8,10 +8,10 @@ from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import LinearSVC
 from sklearn.calibration import CalibratedClassifierCV
 from cleanlab.classification import LearningWithNoisyLabels
+from IPython.display import display
 from Common.DataCenter import data_center
 from Common.preprocessor import normalize_preprocessing
 from Common.UtilFuncs import print_evaluation, Evaluator
-import matplotlib.pyplot as plt
 
 #
 Ev  = Evaluator()
@@ -176,36 +176,29 @@ if __name__ == '__main__':
                                          'Weighted F1', 'Macro Precision', 'Macro Recall', 'F1 of classes',
                                          'Sentiments distribution', 'Noise sources distribution' ]]
         df.sort_values(by="Experiment", inplace=True, ascending=True)
-        print(df.to_string(index=False))
+        df.set_index("Experiment", inplace=True)
+        display(df)
     else:
         # Show evaluations in a form
         Ev.print()
         df = Ev.get_evaluate()
-        df.sort_values(by="Experiment", inplace=True, ascending=True)
-        df.to_csv("tmpeval.csv")
+        df.reset_index().to_csv("tmpeval.csv")
+        df = None
 
+    # Plot training set size vs. Macro F1
+    # x coordinate
+    xValue  = "x['Origin']+x['Noise']"
+    # y coordinate
+    yValue  = "y['Macro F1']"
 
-    # Draw using clean training set
-    dfClean     = df[df['Noise']==0]
-    dfNoisy     = df[df['Noise']!=0]
-    dfDenoise   = dfNoisy[dfNoisy['Denoised']=='Y']
-    dfNoisy     = dfNoisy[dfNoisy['Denoised']=='N']
+    # Divide experiments into several groups, which will be plot as lines
+    lines = { # each item: name, filter
+        'Original Data':      "df['Denoised']=='-'",
+        'Noisy Data':       "df['Denoised']=='N'",
+        'Denoised Data':    "df['Denoised']=='Y'",
+    }
 
-    lst_colors  = ['green', 'red', 'blue']
-    lst_labels  = ['Clean Data', 'Noisy Data', 'Denoised Data']
-    lst_dfs     = [dfClean, dfNoisy, dfDenoise]
-    fig, ax = plt.subplots()
-    plt.title('SVM using confident learning for de-noising')
-
-    for i in range(3):
-        x = np.sum([lst_dfs[i]['Origin'], lst_dfs[i]['Noise']],axis=0)
-        y = list(lst_dfs[i]['Macro F1'])
-        ax.plot(x, y, lst_colors[i], linewidth=1, label=lst_labels[i])
-
-    plt.legend() # 显示图例
-
-    plt.xlabel('Training set size')
-    plt.ylabel('Macro F1')
-
-    plt.show()
+    # Do plot
+    Ev.plot(xValue = xValue, yValue = yValue, lines = lines,
+            title = 'SVM using confident learning for de-noising', df = df)
 
