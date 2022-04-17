@@ -109,7 +109,7 @@ def do_experiment_denoised_by_IsolationForest(train_df, test_df):
 
     # IsolationForest
     # n_estimators is the number of trees, try bigger values
-    iforest = IsolationForest(n_estimators=10000, max_samples='auto',
+    iforest = IsolationForest(n_estimators=100000, max_samples='auto',
                               contamination=0.1, max_features=3,
                               bootstrap=False, n_jobs=-1, random_state=1)
 
@@ -171,7 +171,7 @@ if __name__ == '__main__':
     # distribution of training set
     train_distribution = None
 
-    LOAD_OLD_RESULT    = 0
+    LOAD_OLD_RESULT    = 1
 
     # Run experiments with different training sets, and use the same test set.
     expriment_no    = 1
@@ -203,8 +203,8 @@ if __name__ == '__main__':
     if do_experiment_denoise is None:
         print("No denoising function selected.")
 
-    lstSizes = [(4000, 1000), (8000, 2000), (15000, 5000)]
-    for size in lstSizes:
+    lstNoiseSizes = [(4000, 1000), (8000, 2000), (15000, 5000)]
+    for size in lstNoiseSizes:
         if LOAD_OLD_RESULT:
             break
         # Get a noisy training set
@@ -235,7 +235,7 @@ if __name__ == '__main__':
         Ev.add_evaluation(dfResult, size[0], size[1], "Y",
                                 data_center.calc_distribution_str(train_df['sentiment'], 'sentiment', [0,1,2,3]),
                                 data_center.calc_distribution_str(X_noisy, 'noise', [1,2,3]),
-                                expriment_no + len(lstSizes)
+                                expriment_no + len(lstNoiseSizes)
                                 )
         expriment_no += 1
 
@@ -256,6 +256,7 @@ if __name__ == '__main__':
     # Plot training set size vs. Macro F1
     # x coordinate
     xValue  = "x['Origin']+x['Noise']"
+    xLabel  = "Size of training sets\nnoisy sets: %s" % str(lstNoiseSizes)
     # y coordinate
     yValue  = "y['Macro F1']"
 
@@ -268,7 +269,9 @@ if __name__ == '__main__':
 
     # Do plot
     Ev.plot(xValue = xValue, yValue = yValue, lines = lines,
+            xLabel = xLabel,
             title = 'SVM using %s for de-noising' % denoise_name,
-            subtitle = data_center.distribution2str("noise sources: ", dc.get_noise_source_distribution(), 3),
+            subtitle = data_center.distribution2str(
+                        "noise sources: ", dc.get_noise_source_distribution(), 3),
             df = df)
 
