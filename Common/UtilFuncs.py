@@ -58,8 +58,7 @@ class Evaluator():
     def clear(self):
         self.evaluateDF = None
 
-    def evaluate(self, y_true, y_pred):
-        labels=[0,1,2,3]
+    def evaluate(self, y_true, y_pred, labels=[0,1,2,3]):
         f1scores = []
         for i in range(len(labels)):
             f1scores.append(round(f1_score(y_true, y_pred, labels=[labels[i]], average='macro'),3))
@@ -100,7 +99,7 @@ class Evaluator():
                                    'Sentiments distribution', 'Noise sources distribution' ]]
             display(df.set_index("Experiment"))
 
-    def plot(self, xValue, yValue, lines, title="Plot", xLabel=None, yLabel=None, colors = None, df=None):
+    def plot(self, xValue, yValue, lines, title="Plot", xLabel=None, yLabel=None, colors = None, df=None, subtitle=None):
         if colors is None:
             colors = ['green', 'red', 'blue', 'brown', 'pink', 'black']
         if xLabel is None:
@@ -113,7 +112,7 @@ class Evaluator():
             df = self.evaluateDF.set_index("Experiment")
 
         fig, ax = plt.subplots()
-        plt.title(title)
+        plt.title(title+("" if subtitle is None else ("\n"+subtitle)))
         i = 0
         for k, v in lines.items():
             index_line = df.apply(lambda df: eval(v), axis=1)
@@ -121,6 +120,7 @@ class Evaluator():
             x = df_line.apply(lambda x: eval(xValue), axis=1)
             y = df_line.apply(lambda y: eval(yValue), axis=1)
             ax.plot(x, y, colors[i], label=k)
+            plt.scatter(x, y, marker="o", s=10)
             i = (i+1) % len(colors)
 
         plt.legend()

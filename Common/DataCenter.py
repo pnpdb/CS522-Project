@@ -31,7 +31,10 @@ class data_center():
 
         if isinstance(noisy_size, dict):
             noisy_set_sizes  = noisy_size
-            self.noisy_size  = noisy_size['mislabeled'][0]
+            if 'mislabeled' in noisy_set_sizes.keys():
+                self.noisy_size = noisy_size['mislabeled'][0]
+            else:
+                self.noisy_size = 0
         else:
             noisy_set_sizes  = None
             self.noisy_size  = noisy_size
@@ -366,7 +369,7 @@ class data_center():
         df = pd.concat([dfTrain, dfNoisy])
         df = sklearn.utils.shuffle(df, random_state=self.rseed)  #shuffle
 
-        return self.__add_noise_id_column(df)
+        return self.__add_noise_id_column(df).reset_index()
 
     # Similary as get_train_with_noisy_df, but return X, y
     def get_train_with_noisy(self, original_size = None, noisy_size = None, distribution = None):
@@ -431,12 +434,15 @@ class data_center():
     def get_original_distribution(self):
         return self.distribution
 
+    def get_noise_source_distribution(self):
+        return self.noise_source_distribution
+
     def print_noise_source_distribution(self, hint = ""):
         data_center.show_distribution(hint, tuple(data_center.noise_sources.keys())[1:], self.noise_source_distribution)
 
     def print_summary(self):
         print("###################################### Data Summary #############################################")
-        print("  Raw set (not cleaned) size: %d"    % self.get_raw_len())
+        # print("  Raw set (not cleaned) size: %d"    % self.get_raw_len())
         print("  Original set size: %d"             % self.get_len())
         data_center.show_distribution("      sentiments", ['Anti','Neutral','Pro','News'], self.distribution)
         print("  Training set size: %d"             % self.get_train_len())
@@ -482,7 +488,7 @@ class data_center():
     @staticmethod
     def calc_distribution_str(y, column="sentiment", labels=[0,1,2,3]):
         dist = data_center.calc_distribution(y, column, labels)
-        return data_center.distribution2str(dist, len(labels))
+        return data_center.distribution2str(None, dist, len(labels))
 
     @staticmethod
     # for general distribution
@@ -493,16 +499,19 @@ class data_center():
 
     @staticmethod
     # conver distribution to a string
-    def distribution2str(distribution, class_count):
-        return  "[%s]" % (("%.1f%%, "*(class_count-1)+"%.1f%%") %
-                              tuple([x*100 for x in distribution]))
+    def distribution2str(hint, distribution, class_count):
+        return  "%s[%s]" % ("" if hint is None else hint,
+            ("%.1f%%, "*(class_count-1)+"%.1f%%") % tuple([x*100 for x in distribution]))
 
     @staticmethod
     def print_data(df):
         df = df.copy()
         df['tweetid(partial)']  = df['tweetid'].apply(lambda x: int(x/1000000000000) if x > 0 else x)
         df['message(partial)']  = df['message'].apply(lambda x: x[:30])
-        df['origin(sentiment)'] = df['origin'].fillna(-1).astype(int)
+        if 'origin' not in df.columns.values:
+            df['origin(sentiment)'] = -1
+        else:
+            df['origin(sentiment)'] = df['origin'].fillna(-1).astype(int)
 
         df = df[['noise','noise_text','sentiment','origin(sentiment)','tweetid(partial)','message(partial)']]
         if(data_center.is_ipython()):
