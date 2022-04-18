@@ -256,7 +256,8 @@ if __name__ == '__main__':
     # Plot training set size vs. Macro F1
     # x coordinate
     xValue  = "x['Origin']+x['Noise']"
-    xLabel  = "Size of training sets\nnoisy sets: %s" % str(lstNoiseSizes)
+    xLabel  = "Size of training sets\nnoisy sets: %s" %\
+              str([str(x[0])+'+'+str(x[1]) for x in lstNoiseSizes]).replace("\'","")
     # y coordinate
     yValue  = "y['Macro F1']"
 
