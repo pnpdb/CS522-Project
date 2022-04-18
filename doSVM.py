@@ -12,7 +12,7 @@ from sklearn.ensemble import IsolationForest
 from IPython.display import display
 from Common.DataCenter import data_center
 from Common.preprocessor import normalize_preprocessing
-from Common.UtilFuncs import print_evaluation, Evaluator
+from Common.UtilFuncs import print_evaluation, Evaluator, Lab
 
 #
 Ev  = Evaluator()
@@ -139,140 +139,58 @@ if __name__ == '__main__':
     # The settings of the noise sources.
     # Each item: source -> (size, distribution)
     noisy_set_sizes = {
-        'mislabeled' : (8000, None),                   # max size: 15000
-        'irrelevant' : (0000, [0.25,0.25,0.25,0.25]),  # max size: 34259
-        'translated' : (0000, "reserve_labels"),       # max size: 5000
+        # 'mislabeled' : (8600, None),                   # max size: 15000
+        # 'irrelevant' : (8600, [0.25,0.25,0.25,0.25]),  # max size: 34259
+        'translated' : (8600, "reserve_labels"),       # max size: 5000
     }
 
-    # Choose a denoising method
+    # Choose a experiment without denoising
     # Each item: name -> (funcion, whether choose) note:only the first active one will be used
-    denoising_method = {
-        'Confident Learning' : (do_experiment_denoised_by_ConfidentLearning, 0),
-        'Isolation Forest'   : (do_experiment_denoised_by_IsolationForest,   1),
+    experiment_without_denoising = {
+        'SVM' : (do_experiment, 1),
     }
 
-    # Load the database and split it into training set, test set, noisy set, validation set
-    # dc = data_center("twitter_sentiment_data_clean.csv", train_size = 20000, test_size = 4000, validation_size = 1000,
-    #                  noisy_size = noisy_set_sizes['mislabeled'][0] if 'mislabeled' in noisy_set_sizes.keys() else 0)
+    # Choose a experiment with denoising
+    # Each item: name -> (funcion, whether choose) note:only the first active one will be used
+    experiment_with_denoising = {
+        'Confident Learning' : (do_experiment_denoised_by_ConfidentLearning, 1),
+        'Isolation Forest'   : (do_experiment_denoised_by_IsolationForest,   0),
+    }
 
-    dc = data_center("twitter_sentiment_data_clean.csv", train_size = 20000, test_size = 4000, validation_size = 1000,
-                     noisy_size = noisy_set_sizes)
+    # The training set of each experiment
+    origin_train_set_sizes = [2000, 4000, 5000, 8000, 10000, 15000, 20000]
+    noisy_train_set_sizes  = [(4000, 1000), (8000, 2000), (15000, 5000)]
 
-    # Show the summary of the whole data
-    dc.print_summary()
+    # Initialize the lab, which will run a serial of experiments
+    lab = Lab("twitter_sentiment_data_clean.csv", noisy_sources = noisy_set_sizes, total_train_size = 20000, total_test_size = 4000)
 
-    # To see the data features via a demo
-    train_df = dc.get_train_with_noisy_df(1000,1000)
-    data_center.print_data(train_df.head(15))
+    # Run new experiments (or just review the evaluations saved by previous experiments)
+    RUN = 1
+    if RUN:
+        # Run new experiments
+        # Set the function to classify data without denoising
+        lab.set_experiment_no_denoising(experiment_without_denoising)
 
-    # Get the test set for evaluation
-    test_df = dc.get_test_df()
+        # Set the function to classify data with denoising
+        lab.set_experiment_with_denoising(experiment_with_denoising)
 
-    # distribution of training set
-    train_distribution = None
+        print("-------------- No noisy training sets ----------")
+        lab.do_batch_experiments(origin_train_set_sizes)
 
-    LOAD_OLD_RESULT    = 1
+        print("-------------- Noisy training sets -------------")
+        lab.do_batch_experiments(noisy_train_set_sizes)
 
-    # Run experiments with different training sets, and use the same test set.
-    expriment_no    = 1
-    print("-------------- No noisy training sets ----------")
-    for size in [2000, 4000, 5000, 8000, 10000, 15000, 20000]:
-        if LOAD_OLD_RESULT:
-            break
-        # Get a training set without noisy data
-        train_df = dc.get_train_df(size, train_distribution)
-        print("*%2d> Training set size: %d samples" % (expriment_no, len(train_df)))
-        data_center.print_distribution("  Sentiments", train_df['sentiment'])
-
-        # Do an experiment
-        dfResult = do_experiment(train_df, test_df)
-        Ev.add_evaluation(dfResult, size, 0, "-",
-                          data_center.calc_distribution_str(train_df['sentiment'], 'sentiment', [0,1,2,3]),
-                          "-", expriment_no
-                         )
-        expriment_no += 1
-
-    print("-------------- Noisy training sets -------------")
-    dc.print_noise_source_distribution("General noise source distribution")
-
-    do_experiment_denoise  = None
-    for denoise_name, v in denoising_method.items():
-        if v[1] == True:
-            do_experiment_denoise = v[0]
-            break
-    if do_experiment_denoise is None:
-        print("No denoising function selected.")
-
-    lstNoiseSizes = [(4000, 1000), (8000, 2000), (15000, 5000)]
-    for size in lstNoiseSizes:
-        if LOAD_OLD_RESULT:
-            break
-        # Get a noisy training set
-        train_df         = dc.get_train_with_noisy_df(size[0], size[1], train_distribution)
-        X_noisy          = train_df[train_df['noise'] != 0]
-
-        print("*%2d> Noisy training set size: %d samples (%d original, %d noisy)"
-              % (expriment_no, len(train_df), size[0], size[1]))
-        data_center.print_distribution("  Sentiments", train_df['sentiment'])
-        dc.print_noise_source_distribution("  Noise sources")
-
-        # Do an experiment without de-noising
-        print("  Before de-noising:")
-        dfResult = do_experiment(train_df, test_df)
-        Ev.add_evaluation(dfResult, size[0], size[1], "N",
-                                data_center.calc_distribution_str(train_df['sentiment'], 'sentiment', [0,1,2,3]),
-                                data_center.calc_distribution_str(X_noisy, 'noise', [1,2,3]),
-                                expriment_no
-                                )
-
-        # Do an experiment with de-noising
-        if do_experiment_denoise is None:
-            continue
-
-        print("  After de-noising:")
-        dfResult, _ = do_experiment_denoise(train_df, test_df)
-
-        Ev.add_evaluation(dfResult, size[0], size[1], "Y",
-                                data_center.calc_distribution_str(train_df['sentiment'], 'sentiment', [0,1,2,3]),
-                                data_center.calc_distribution_str(X_noisy, 'noise', [1,2,3]),
-                                expriment_no + len(lstNoiseSizes)
-                                )
-        expriment_no += 1
-
-    if(LOAD_OLD_RESULT):
-        df = pd.read_csv("tmpeval.csv")[[ 'Experiment', 'Origin', 'Noise', 'Denoised', 'Micro F1', 'Macro F1',
-                                         'Weighted F1', 'Macro Precision', 'Macro Recall', 'F1 of classes',
-                                         'Sentiments distribution', 'Noise sources distribution' ]]
-        df.sort_values(by="Experiment", inplace=True, ascending=True)
-        df.set_index("Experiment", inplace=True)
-        display(df)
-    else:
         # Show evaluations in a form
-        Ev.print()
-        df = Ev.get_evaluate()
-        df.reset_index().to_csv("tmpeval.csv")
-        df = None
+        lab.print()
 
-    # Plot training set size vs. Macro F1
-    # x coordinate
-    xValue  = "x['Origin']+x['Noise']"
-    xLabel  = "Size of training sets\nnoisy sets: %s" %\
-              str([str(x[0])+'+'+str(x[1]) for x in lstNoiseSizes]).replace("\'","")
-    # y coordinate
-    yValue  = "y['Macro F1']"
+        # Save the results
+        lab.save("lab.pk")
 
-    # Divide experiments into several groups, each will be plotted as a line
-    lines = { # each item: name, filter
-        'Original Data':    "df['Denoised']=='-'",
-        'Noisy Data':       "df['Denoised']=='N'",
-        'Denoised Data':    "df['Denoised']=='Y'",
-    }
+        # Plot the evaluations
+        lab.plot()
+    else:
+        # Read evaluations saved by previous experiments
+        lab = Lab.load("lab.pk")
 
-    # Do plot
-    Ev.plot(xValue = xValue, yValue = yValue, lines = lines,
-            xLabel = xLabel,
-            title = 'SVM using %s for de-noising' % denoise_name,
-            subtitle = data_center.distribution2str(
-                        "noise sources: ", dc.get_noise_source_distribution(), 3),
-            df = df)
-
+        # Plot the evaluations
+        lab.plot()

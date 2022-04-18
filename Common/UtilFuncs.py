@@ -1,6 +1,8 @@
 from sklearn.metrics import precision_score, recall_score, f1_score
 from IPython.display import display
+from Common.DataCenter import data_center
 import pandas as pd
+import pickle
 import matplotlib.pyplot as plt
 
 # Print the evaluation
@@ -49,14 +51,14 @@ def show_distribution(hint, keys, distribution):
 
 class Evaluator():
     def __init__(self):
-        self.evaluateDF  = None
-        self.last_index  = 0
+        self.clear()
 
     def get_evaluate(self):
         return self.evaluateDF.set_index("Experiment")
 
     def clear(self):
         self.evaluateDF = None
+        self.last_index  = 0
 
     def evaluate(self, y_true, y_pred, labels=[0,1,2,3]):
         f1scores = []
@@ -92,6 +94,9 @@ class Evaluator():
             self.evaluateDF = pd.concat([self.evaluateDF,df],axis=0)
         self.evaluateDF.sort_values(by="Experiment", inplace=True, ascending=True)
 
+    def get_last_index(self):
+        return self.last_index
+
     def print(self):
         if self.evaluateDF is not None:
             df = self.evaluateDF[[ 'Experiment', 'Origin', 'Noise', 'Denoised', 'Micro F1', 'Macro F1',
@@ -117,6 +122,8 @@ class Evaluator():
         for k, v in lines.items():
             index_line = df.apply(lambda df: eval(v), axis=1)
             df_line    = df[index_line]
+            if(len(df_line) == 0):
+                continue
             x = df_line.apply(lambda x: eval(xValue), axis=1)
             y = df_line.apply(lambda y: eval(yValue), axis=1)
             ax.plot(x, y, colors[i], label=k)
@@ -127,6 +134,156 @@ class Evaluator():
         plt.xlabel(xLabel)
         plt.ylabel(yLabel)
         plt.show()
+
+class Lab():
+    def __init__(self, data_file, noisy_sources=8000, total_train_size = 20000, total_test_size = 4000, validation_size = 1000):
+        self.Ev  = Evaluator()
+        self.clear()
+        self.data_file                  = data_file
+        self.noisy_sources              = noisy_sources
+        self.total_train_size           = total_train_size
+        self.total_test_size            = total_test_size
+        self.validation_size            = validation_size
+        self.experiment                 = None
+        self.experiment_name            = ""
+        self.experiment_denoising       = None
+        self.experiment_denoising_name  = ""
+        self.last_index                 = 0
+        self.noisy_train_set_sizes      = None
+        self.__create_sets()
+
+    def suffle(self, rseed):
+        self.dc.shuffle(rseed)
+
+    def set_noisy_sources(self, noisy_sources):
+        self.noisy_sources  = noisy_sources
+        self.__create_sets()
+
+    def clear(self):
+        self.Ev.clear()
+
+    def __create_sets(self):
+        self.dc =  data_center(self.data_file,
+                               train_size = self.total_train_size, test_size = self.total_test_size,
+                               validation_size = self.validation_size,
+                               noisy_size = self.noisy_sources)
+
+    # Set the experiment without denoising
+    # Paramter experiment is like: def do_experiment(train_df, test_df) which return EV:
+    def set_experiment_no_denoising(self, experiment):
+        self.experiment = None
+        for name, v in experiment.items():
+            if v[1] == True:
+                self.experiment         = v[0]
+                self.experiment_name    = name
+                break
+
+    # Set the experiment with denoising
+    # Paramter experiment is like: def do_experiment_denoising(train_df, test_df) which return EV and other_info:
+    def set_experiment_with_denoising(self, experiment_denoising):
+        self.experiment_denoising = None
+        for name, v in experiment_denoising.items():
+            if v[1] == True:
+                self.experiment_denoising         = v[0]
+                self.experiment_denoising_name    = name
+                break
+
+    def do_batch_experiments(self, train_set_sizes):
+        dc = self.dc
+        experiment_no   = self.Ev.get_last_index() + 1
+
+        # Get the test set for evaluation
+        test_df = dc.get_test_df()
+
+        train_distribution  = None
+
+        # Run experiments with different training sets, and use the same test set.
+        for size in train_set_sizes:
+            bNoisy  = False
+            if isinstance(size, tuple) or isinstance(size, list):
+                bNoisy  = True
+
+            if bNoisy:
+                train_df = dc.get_train_with_noisy_df(size[0], size[1], train_distribution)
+                X_noisy          = train_df[train_df['noise'] != 0]
+
+                print("*%2d> Noisy training set size: %d samples (%d original, %d noisy)"
+                      % (experiment_no, len(train_df), size[0], size[1]))
+                data_center.print_distribution("  Sentiments", train_df['sentiment'])
+                dc.print_noise_source_distribution("  Noise sources")
+                print("  Before de-noising:")
+            else:
+                train_df = dc.get_train_df(size, train_distribution)
+                print("*%2d> Training set size: %d samples" % (experiment_no, len(train_df)))
+                data_center.print_distribution("  Sentiments", train_df['sentiment'])
+
+            # Do an experiment
+            dfResult = self.experiment(train_df, test_df)
+            if bNoisy:
+                self.Ev.add_evaluation(dfResult, size[0], size[1], "N",
+                                  data_center.calc_distribution_str(train_df['sentiment'], 'sentiment', [0,1,2,3]),
+                                  data_center.calc_distribution_str(X_noisy, 'noise', [1,2,3]),
+                                  experiment_no)
+            else:
+                self.Ev.add_evaluation(dfResult, size, 0, "-",
+                                  data_center.calc_distribution_str(train_df['sentiment'], 'sentiment', [0,1,2,3]),
+                                  "-", experiment_no)
+
+            if bNoisy and self.experiment_denoising:
+                print("  After de-noising:")
+                # Do an experiment with de-noising first
+                dfResult, _ = self.experiment_denoising(train_df, test_df)
+                self.Ev.add_evaluation( dfResult, size[0], size[1], "Y",
+                                   data_center.calc_distribution_str(train_df['sentiment'], 'sentiment', [0,1,2,3]),
+                                   data_center.calc_distribution_str(X_noisy, 'noise', [1,2,3]),
+                                   experiment_no + len(train_set_sizes))
+
+                self.noisy_train_set_sizes  = train_set_sizes
+
+            experiment_no += 1
+
+        return self.Ev
+
+    def print(self):
+        self.Ev.print()
+
+    def plot(self):
+        # Plot training set size vs. Macro F1
+        # x coordinate
+        xValue  = "x['Origin']+x['Noise']"
+        if self.noisy_train_set_sizes is not None:
+            xLabel  = "Training set size\nnoisy sets: %s" % \
+                      str([str(x[0])+'+'+str(x[1]) for x in self.noisy_train_set_sizes]).replace("\'","")
+        else:
+            xLabel  = "Training set size"
+
+        # y coordinate
+        yValue  = "y['Macro F1']"
+
+        # Divide experiments into several groups, each will be plotted as a line
+        lines = { # each item: name, filter
+            'Original Data':    "df['Denoised']=='-'",
+            'Noisy Data':       "df['Denoised']=='N'",
+            'Denoised Data':    "df['Denoised']=='Y'",
+        }
+
+        # Do plot
+        self.Ev.plot(xValue = xValue, yValue = yValue, lines = lines,
+                xLabel = xLabel,
+                title = 'SVM using %s for de-noising' % "denoise_name",
+                subtitle = data_center.distribution2str(
+                          "noise sources: ", self.dc.get_noise_source_distribution(), 3)
+                )
+
+    def save(self, filename):
+        with open(filename , "wb") as fh:
+            pickle.dump(self, fh)
+
+    @staticmethod
+    def load(filename):
+        with open(filename , "rb") as fh:
+            lab = pickle.load(fh)
+        return lab
 
 class DataSize:
     # get the training size of baseline

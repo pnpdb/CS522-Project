@@ -338,25 +338,26 @@ class data_center():
         # Noise should not be already in training set.
         # "reserve_labels". Currently, noise_text=translated
         random.seed(noisy_size+self.rseed)
+        dfNoisy12 = self.dfNoisy[self.dfNoisy['noise_text']!='translated']
+        dfNoisy12 = sklearn.utils.shuffle(dfNoisy12, random_state=self.rseed)
+
         translated_size = int(noisy_size * self.noise_source_distribution[2] * random.uniform(0.98,1.02))
+        translated_size = max(translated_size, noisy_size-len(dfNoisy12))
+
         dftmp     = self.dfNoisy[self.dfNoisy['noise_text']=='translated']
         dfNoisy3  = dftmp[~dftmp['tweetid'].isin(dfTrain['tweetid'])]
         if(len(dfNoisy3) < translated_size):
             raise Exception("Requiring %d no conflict translated noisy data, but only %d available!"
                             % (translated_size, len(dfNoisy3)))
-        dfNoisy3  = sklearn.utils.shuffle(dfNoisy3, random_state=self.rseed)  #shuffle
+        dfNoisy3  = sklearn.utils.shuffle(dfNoisy3, random_state=self.rseed)
         dfNoisy3  = dfNoisy3[:translated_size]
 
-        dfNoisy12 = self.dfNoisy[self.dfNoisy['noise_text']!='translated']
-        dfNoisy12 = sklearn.utils.shuffle(dfNoisy12, random_state=self.rseed)  #shuffle
         dfNoisy12 = dfNoisy12[:noisy_size-translated_size]
-
-        # dfNoisy  = self.dfNoisy[~self.dfNoisy['tweetid'].isin(dfTrain['tweetid'])]
         dfNoisy   = pd.concat([dfNoisy12, dfNoisy3])
         if noisy_size > len(dfNoisy):
             raise Exception("Requiring %d noisy data, but only %d available!" % (noisy_size, len(dfNoisy)))
 
-        dfNoisy = sklearn.utils.shuffle(dfNoisy, random_state=self.rseed)  #shuffle
+        dfNoisy = sklearn.utils.shuffle(dfNoisy, random_state=self.rseed)
         dfNoisy = self.__add_noise_id_column(dfNoisy)
         dfNoisy = dfNoisy[:noisy_size]
 
@@ -506,14 +507,14 @@ class data_center():
     @staticmethod
     def print_data(df):
         df = df.copy()
-        df['tweetid(partial)']  = df['tweetid'].apply(lambda x: int(x/1000000000000) if x > 0 else x)
-        df['message(partial)']  = df['message'].apply(lambda x: x[:30])
+        df['tweetid...']  = df['tweetid'].apply(lambda x: str(int(x/100000000)) if x > 0 else "-")
+        df['message...']  = df['message'].apply(lambda x: x[:30])
         if 'origin' not in df.columns.values:
-            df['origin(sentiment)'] = -1
+            df['origin(sentiment)'] = "-"
         else:
-            df['origin(sentiment)'] = df['origin'].fillna(-1).astype(int)
+            df['origin(sentiment)'] = df['origin'].apply(lambda x: str(int(x)) if str(x) != "nan" else "-")
 
-        df = df[['noise','noise_text','sentiment','origin(sentiment)','tweetid(partial)','message(partial)']]
+        df = df[['noise','noise_text','sentiment','origin(sentiment)','tweetid...','message...']]
         if(data_center.is_ipython()):
             display(df)
         else:
