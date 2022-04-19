@@ -45,8 +45,8 @@ if __name__ == '__main__':
     # The settings of the noise sources.
     # Each item: source -> (size, distribution)
     noisy_set_sizes = {
-        # 'mislabeled' : (8600, None),                   # max size: 15000
-        'irrelevant' : (8600, [0.25,0.25,0.25,0.25]),  # max size: 34259
+        'mislabeled' : (8600, None),                   # max size: 15000
+        # 'irrelevant' : (8600, [0.25,0.25,0.25,0.25]),  # max size: 34259
         # 'translated' : (8600, 100),       # max size: 5000
     }
 
@@ -60,8 +60,8 @@ if __name__ == '__main__':
     # Each item: name -> (funcion, whether choose) note:only the first active one will be used
     experiment_with_denoising = {
         'Confident Learning' : (ConfidentLearningMethod.do_experiment_with_denoising_for_SVM,   1),
-        'Isolation Forest'   : (IsolationForestMethod.do_experiment_with_denoising_for_SVM,     1),
-        'LocalOutlierFactor' : (LocalOutlierFactorMethod.do_experiment_with_denoising_for_SVM,  1),
+        'Isolation Forest'   : (IsolationForestMethod.do_experiment_with_denoising_for_SVM,     0),
+        'LocalOutlierFactor' : (LocalOutlierFactorMethod.do_experiment_with_denoising_for_SVM,  0),
     }
 
     # The training set of each experiment
