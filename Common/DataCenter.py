@@ -244,13 +244,19 @@ class data_center():
     # distribution: distribution of the noisy.
     #               None: use the distribution of original set
     #               "reserve_labels": use the labels of each noisy data.
+    #               0~1: ratio to mislabel the data(if has label), 0 is same as "reserve_labels", 1 means mialabel all
     # size: size of noisy to be add. None indicates all noisy data will be added
     def add_noisy(self, noisy_source, distribution = None, size = None):
-        reserve_labels = False
         if distribution is None:
             distribution = self.distribution
+        elif isinstance(distribution, list) or isinstance(distribution, tuple):
+            pass
         elif isinstance(distribution, str) and distribution == "reserve_labels":
-            reserve_labels = True
+            mis_ratio = 0
+            distribution = None
+        else:
+            mis_ratio = float(distribution)
+            distribution = None
 
         lstMessage     = []
         lstSentiment   = []
@@ -260,40 +266,53 @@ class data_center():
         for file in lstFile:
             df = self.__read_csv_safe(dir + file)
             lstMessage  += list(df['message'])
-            if reserve_labels:
-                lstSentiment   += list(df['sentiment'])
-                if 'tweetid' in df.columns.values:
-                    lstTweetid  += list(df['tweetid'])
+            if distribution is None:    #donot use specific distribution
+                if 'sentiment' in df.columns.values:
+                    lstSentiment    += list(df['sentiment'])
+            if 'tweetid' in df.columns.values:
+                lstTweetid      += list(df['tweetid'])
 
         length = len(lstMessage)
-        if not reserve_labels:
-            lstMessage = sklearn.utils.shuffle(lstMessage, random_state=self.rseed)
-            lstSentiment = []
+
+        df = pd.DataFrame(lstMessage, columns=['message'])
+        if len(lstTweetid) == length:
+            df['tweetid']   = lstTweetid
+
+        if len(lstSentiment):   # if source data have labels, save to 'origin'
+            df['origin'] = lstSentiment
+            df['origin'] = df['origin'].astype("int")
+            df['origin'] = df['origin'].apply(lambda x: x+1)
+            random.seed(self.rseed)
+            df = sklearn.utils.shuffle(df, random_state=self.rseed)
+
+            mis_len = int(length*mis_ratio)
+            _ = df['origin'][:mis_len]
+            _ = list(map(lambda x: (int(x) + random.randint(1, self.class_count-1)) % self.class_count, _))
+            df['sentiment'] = list(_) + list(df[mis_len:]['origin'])
+        else:  # if source data have no label, generate randomly according to the distribution specified
             for i in range(self.class_count):
                 c = int(round(length * distribution[i])) # Use specific distribution to calc the size of every label
                 if i == self.class_count - 1:
                     c = length - len(lstSentiment)
                 lstSentiment += ([i]*c)
-            lstSentiment = sklearn.utils.shuffle(lstSentiment, random_state=self.rseed)
-
-            df = pd.DataFrame(lstSentiment, columns=['sentiment'])
-            df['sentiment'] = df['sentiment'].astype("category")
-            df['message']   = lstMessage
-        else:
-            df = pd.DataFrame(lstSentiment, columns=['sentiment'])
-            # df['sentiment'] = df['sentiment'].astype("category").cat.codes
+            df['sentiment'] = lstSentiment
             df['sentiment'] = df['sentiment'].astype("int")
-            df['sentiment'] = df['sentiment'].apply(lambda x: x+1)
             df['message']   = lstMessage
 
-            if len(lstTweetid) == length:
-                # use tweetid to drop samples which exists in test set
-                df['tweetid']   = lstTweetid
-                dfForDrop   = pd.concat([self.get_test_df()[['sentiment','message','tweetid']], df])
-                dfForDrop   = dfForDrop.drop_duplicates(subset=['tweetid'],keep="first")
-                df          = dfForDrop[self.get_test_len():]
+        # else:
+        #     df = pd.DataFrame(lstSentiment, columns=['sentiment'])
+        #     df['sentiment'] = df['sentiment'].astype("int")
+        #     df['sentiment'] = df['sentiment'].apply(lambda x: x+1)
+        #     df['origin']    = df['sentiment']
+        #     df['message']   = lstMessage
 
-            df = sklearn.utils.shuffle(df, random_state=self.rseed)
+        if len(lstTweetid) == length:
+            # use tweetid to drop samples which exists in test set
+            dfForDrop   = pd.concat([self.get_test_df()[['sentiment','message','tweetid']], df])
+            dfForDrop   = dfForDrop.drop_duplicates(subset=['tweetid'],keep="first")
+            df          = dfForDrop[self.get_test_len():]
+
+        df = sklearn.utils.shuffle(df, random_state=self.rseed)
 
         df = df[df['message'] != None]
         df.dropna(inplace=True)
@@ -306,6 +325,9 @@ class data_center():
 
         if 'tweetid' not in df.columns.values:
             df['tweetid']   = [-1] * len(df)
+
+        if 'origin' not in df.columns.values:
+            df['origin']   = None
 
         df['noise_text'] = noisy_source
 
@@ -341,11 +363,14 @@ class data_center():
         dfNoisy12 = self.dfNoisy[self.dfNoisy['noise_text']!='translated']
         dfNoisy12 = sklearn.utils.shuffle(dfNoisy12, random_state=self.rseed)
 
-        translated_size = int(noisy_size * self.noise_source_distribution[2] * random.uniform(0.98,1.02))
+        small_delta = 0.02  # let the distribtions to fluctuate in a samll range
+        translated_size = int(noisy_size * self.noise_source_distribution[2] * random.uniform(1-small_delta,1+small_delta))
         translated_size = max(translated_size, noisy_size-len(dfNoisy12))
 
         dftmp     = self.dfNoisy[self.dfNoisy['noise_text']=='translated']
         dfNoisy3  = dftmp[~dftmp['tweetid'].isin(dfTrain['tweetid'])]
+        if translated_size * (1-small_delta-0.01) < len(dfNoisy3) < translated_size:
+            translated_size = len(dfNoisy3)
         if(len(dfNoisy3) < translated_size):
             raise Exception("Requiring %d no conflict translated noisy data, but only %d available!"
                             % (translated_size, len(dfNoisy3)))
@@ -512,7 +537,7 @@ class data_center():
         if 'origin' not in df.columns.values:
             df['origin(sentiment)'] = "-"
         else:
-            df['origin(sentiment)'] = df['origin'].apply(lambda x: str(int(x)) if str(x) != "nan" else "-")
+            df['origin(sentiment)'] = df['origin'].apply(lambda x: str(int(x)) if pd.notnull(x) else "-")
 
         df = df[['noise','noise_text','sentiment','origin(sentiment)','tweetid...','message...']]
         if(data_center.is_ipython()):

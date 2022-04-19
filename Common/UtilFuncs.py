@@ -54,13 +54,17 @@ class Evaluator():
         self.clear()
 
     def get_evaluate(self):
-        return self.evaluateDF.set_index("Experiment")
+        return self.evaluateDF
 
     def clear(self):
         self.evaluateDF = None
         self.last_index  = 0
 
     def evaluate(self, y_true, y_pred, labels=[0,1,2,3]):
+        return Evaluator.do_evaluate(y_true, y_pred, labels)
+
+    @staticmethod
+    def do_evaluate(y_true, y_pred, labels=[0,1,2,3]):
         f1scores = []
         for i in range(len(labels)):
             f1scores.append(round(f1_score(y_true, y_pred, labels=[labels[i]], average='macro'),3))
@@ -114,7 +118,7 @@ class Evaluator():
             yLabel = yValue.replace("y['","")
             yLabel = yLabel.replace("']","")
         if df is None:
-            df = self.evaluateDF.set_index("Experiment")
+            df = self.evaluateDF
 
         fig, ax = plt.subplots()
         plt.title(title+("" if subtitle is None else ("\n"+subtitle)))
@@ -170,9 +174,9 @@ class Lab():
 
     # Set the experiment without denoising
     # Paramter experiment is like: def do_experiment(train_df, test_df) which return EV:
-    def set_experiment_no_denoising(self, experiment):
+    def set_experiment_no_denoising(self, experiments):
         self.experiment = None
-        for name, v in experiment.items():
+        for name, v in experiments.items():
             if v[1] == True:
                 self.experiment         = v[0]
                 self.experiment_name    = name
@@ -180,9 +184,9 @@ class Lab():
 
     # Set the experiment with denoising
     # Paramter experiment is like: def do_experiment_denoising(train_df, test_df) which return EV and other_info:
-    def set_experiment_with_denoising(self, experiment_denoising):
+    def set_experiment_with_denoising(self, experiments_denoising):
         self.experiment_denoising = None
-        for name, v in experiment_denoising.items():
+        for name, v in experiments_denoising.items():
             if v[1] == True:
                 self.experiment_denoising         = v[0]
                 self.experiment_denoising_name    = name
@@ -206,7 +210,6 @@ class Lab():
             if bNoisy:
                 train_df = dc.get_train_with_noisy_df(size[0], size[1], train_distribution)
                 X_noisy          = train_df[train_df['noise'] != 0]
-
                 print("*%2d> Noisy training set size: %d samples (%d original, %d noisy)"
                       % (experiment_no, len(train_df), size[0], size[1]))
                 data_center.print_distribution("  Sentiments", train_df['sentiment'])
@@ -270,10 +273,17 @@ class Lab():
         # Do plot
         self.Ev.plot(xValue = xValue, yValue = yValue, lines = lines,
                 xLabel = xLabel,
-                title = 'SVM using %s for de-noising' % "denoise_name",
+                title = 'SVM using %s for de-noising' % self.experiment_denoising_name,
                 subtitle = data_center.distribution2str(
                           "noise sources: ", self.dc.get_noise_source_distribution(), 3)
                 )
+
+    @staticmethod
+    def get_active_experiment_name(experiments):
+        for name, v in experiments.items():
+            if v[1] == True:
+                return name
+        return None
 
     def save(self, filename):
         with open(filename , "wb") as fh:
