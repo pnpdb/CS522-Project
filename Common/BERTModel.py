@@ -8,6 +8,7 @@ from tqdm import tqdm
 import numpy as np
 from Common.DataCenter import data_center
 from Common.preprocessor import one_hot_encoding
+from Common.UtilFuncs import print_evaluation, Evaluator, Lab
 
 class BERTModel:
     def __init__(self):
@@ -84,7 +85,7 @@ class BERTModel:
         history = self.Model.fit(X_train,
                     y_train,
                     epochs=50,
-                    batch_size=8,
+                    batch_size=16,
                     validation_data=(X_val, y_val),
                     callbacks=[self.model_checkpoint, self.early_stopping, self.reduce_lr])
         self.History = history
@@ -117,7 +118,7 @@ class BERTModel:
 # do an experiment without denoising
 # Parameter: original X,y of training set and test set
 # Return evaluation info
-def do_experiment(train_df, test_df, lab):
+def do_experiment_BERT(train_df, test_df, lab):
     X_train, y_train = data_center.Xy(train_df)
     X_test, y_test   = data_center.Xy(test_df)
     
@@ -135,15 +136,17 @@ def do_experiment(train_df, test_df, lab):
 
     y_train_vec, y_test_vec = one_hot_encoding(y_train, y_test)
     y_val_vec = one_hot_encoding(y_val)
-
+    y_train = np.array(y_train)
+    y_val = np.array(y_val)
+    y_test = np.array(y_test)
     
    
 
-    bert.Train(X_train_token, y_train_vec, X_val_token, y_val_vec)
+    bert.Train(X_train_token, y_train, X_val_token, y_val)
     y_pred = bert.Predict(X_test_token)
     
 
     # Print the evaluation
-    print_evaluation(y_test_vec, y_pred, labels=[0,1,2,3])
-    evaluateDF = Evaluator.do_evaluate(y_test_vec, y_pred)
+    print_evaluation(y_test, y_pred, labels=[0,1,2,3])
+    evaluateDF = Evaluator.do_evaluate(y_test, y_pred)
     return evaluateDF

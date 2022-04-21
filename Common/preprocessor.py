@@ -65,5 +65,5 @@ def one_hot_encoding(y_train, y_test = None):
     if y_test != None:
         y_test_vec   = mlb.transform(map(str, y_test))
         return y_train_vec, y_test_vec
-    else
+    else:
         return y_train_vec
