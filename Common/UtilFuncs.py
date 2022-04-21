@@ -150,8 +150,10 @@ class Lab():
         self.total_test_size            = total_test_size
         self.validation_size            = validation_size
         self.experiment                 = None
+        self.experiment_params          = None
         self.experiment_name            = ""
         self.experiment_denoising       = None
+        self.experiment_denoising_params= None
         self.experiment_denoising_name  = ""
         self.last_index                 = 0
         self.noisy_train_set_sizes      = None
@@ -184,8 +186,9 @@ class Lab():
     def set_experiment_no_denoising(self, experiments):
         self.experiment = None
         for name, v in experiments.items():
-            if v[1] == True:
+            if v[-1]:
                 self.experiment         = v[0]
+                self.experiment_params  = v[1] if len(v) > 2 else None
                 self.experiment_name    = name
                 break
 
@@ -194,8 +197,9 @@ class Lab():
     def set_experiment_with_denoising(self, experiments_denoising):
         self.experiment_denoising = None
         for name, v in experiments_denoising.items():
-            if v[1] == True:
+            if v[-1]:
                 self.experiment_denoising         = v[0]
+                self.experiment_denoising_params  = v[1] if len(v) > 2 else None
                 self.experiment_denoising_name    = name
                 break
 
@@ -226,7 +230,10 @@ class Lab():
                 data_center.print_distribution("  Sentiments", train_df['sentiment'])
 
             # Do an experiment
-            dfResult = self.experiment(train_df, test_df)
+            if self.experiment_params is not None:
+                dfResult = self.experiment(train_df, test_df, *self.experiment_params)
+            else:
+                dfResult = self.experiment(train_df, test_df)
             if bNoisy:
                 self.Ev.add_evaluation(dfResult, size[0], size[1], "N",
                                   data_center.calc_distribution_str(train_df['sentiment'], 'sentiment', [0,1,2,3]),
@@ -240,7 +247,10 @@ class Lab():
             if bNoisy and self.experiment_denoising:
                 print("  After de-noising:")
                 # Do an experiment with de-noising first
-                dfResult, _ = self.experiment_denoising(train_df, test_df)
+                if self.experiment_params is not None:
+                    dfResult, _ = self.experiment_denoising(train_df, test_df, *self.experiment_denoising_params)
+                else:
+                    dfResult, _ = self.experiment_denoising(train_df, test_df)
                 self.Ev.add_evaluation( dfResult, size[0], size[1], "Y",
                                    data_center.calc_distribution_str(train_df['sentiment'], 'sentiment', [0,1,2,3]),
                                    data_center.calc_distribution_str(X_noisy, 'noise', [1,2,3]),

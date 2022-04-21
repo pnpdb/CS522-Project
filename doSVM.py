@@ -25,7 +25,9 @@ def run_SVM(X_train_vec, y_train_vec, X_test_vec, y_test_vec):
 # do an experiment without denoising
 # Parameter: training set and test set
 # Return evaluation info
-def do_experiment(train_df, test_df):
+def do_experiment(train_df, test_df, *args):
+    print(args[0], args[1])
+
     X_train, y_train = data_center.Xy(train_df)
     X_test, y_test   = data_center.Xy(test_df)
 
@@ -53,7 +55,7 @@ if __name__ == '__main__':
     # Choose a experiment without denoising
     # Each item: name -> (funcion, whether choose) note:only the first active one will be used
     experiment_without_denoising = {
-        'SVM without denoising' : (do_experiment, 1),
+        'SVM without denoising' : (do_experiment, ("a","b"), 1),
     }
 
     # Choose a experiment with denoising
@@ -90,7 +92,7 @@ if __name__ == '__main__':
     lab_filename = "saving/" + lab_filename + str(noisy_train_set_sizes) + ".pk"
 
     # Run new experiments (or just review the evaluations saved by previous experiments)
-    RUN = 0
+    RUN = 1
     if RUN:     # Run new experiments
         # Set the function to classify data without denoising
         lab.set_experiment_no_denoising(experiment_without_denoising)

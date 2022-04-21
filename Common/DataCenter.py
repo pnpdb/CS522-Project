@@ -472,8 +472,8 @@ class data_center():
         print("  Total data size: %d"             % self.get_len())
         data_center.show_distribution("      sentiments", ['Anti','Neutral','Pro','News'], self.distribution)
         print("  Training data size: %d"             % self.get_train_len())
-        print("  Test data data: %d"                 % self.get_test_len())
-        print("  Noisy data data: %d"                % self.get_noisy_len())
+        print("  Test data size: %d"                 % self.get_test_len())
+        print("  Noisy data size: %d"                % self.get_noisy_len())
         if len(self.get_validation()[0]):
             print("  Validation data size: %d"           % len(self.get_validation()[0]))
         self.print_noise_source_distribution("      noise sources")
