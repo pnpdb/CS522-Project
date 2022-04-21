@@ -10,6 +10,7 @@ import Common.SvmMethod as SvmMethod
 import Common.IsolationForestMethod as IsolationForestMethod
 import Common.ConfidentLearningMethod as ConfidentLearningMethod
 import Common.LocalOutlierFactorMethod as LocalOutlierFactorMethod
+from Common.BERTModel import do_experiment_BERT
 
 # The settings of the noise sources.
 # Each item: source -> (size, distribution)
@@ -46,7 +47,8 @@ noisy_set_sizes4 = {
 # Choose a experiment without denoising
 # Each item: name -> (funcion, whether choose) note:only the first active one will be used
 experiment_without_denoising = {
-    'SVM' : (SvmMethod.do_experiment, 1),
+    'SVM' : (SvmMethod.do_experiment, 0),
+    'BERT' : (do_experiment_BERT, 0),
 }
 
 # Choose a experiment with denoising
@@ -70,6 +72,7 @@ if __name__ == '__main__':
         # Initialize the lab, which will run a serial of experiments
 
         lab = Lab("twitter_sentiment_data_clean.csv", noisy_sources = noisy_set_sizes0, total_train_size = 20000, total_test_size = 4000)
+        experiment_without_denoising['BERT'] = (do_experiment_BERT, (lab,), 1)
         lab.set_experiment_no_denoising(experiment_without_denoising)
 
         # Run experiment on original data
