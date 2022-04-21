@@ -1,3 +1,11 @@
+import os
+from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
+import tensorflow as tf
+import tensorflow_addons as tfa
+from transformers import DistilBertTokenizer, TFDistilBertModel, DistilBertConfig
+from transformers import logging as hf_logging
+from tqdm import tqdm
+import numpy as np
 class BERTModel:
     def __init__(self):
         self.MODEL_NAME = 'distilbert-base-uncased'
@@ -36,23 +44,23 @@ class BERTModel:
             layer.trainable = True
         self.Model = model
         
-        ckpt_dir = './ckpt'
-        if not os.path.exists(ckpt_dir):
-            os.makedirs(ckpt_dir)
-        model_checkpoint = ModelCheckpoint(filepath=ckpt_dir + '/weights_val_best.hdf5',
+        self.ckpt_dir = './ckpt'
+        if not os.path.exists(self.ckpt_dir):
+            os.makedirs(self.ckpt_dir)
+        self.model_checkpoint = ModelCheckpoint(filepath=self.ckpt_dir + '/weights_val_best.hdf5',
                                    monitor='val_accuracy',
                                    save_weights_only=True,
                                    save_best_only=True,
                                    verbose=0)
 
-        early_stopping = EarlyStopping(patience=3,
+        self.early_stopping = EarlyStopping(patience=3,
                                        monitor='val_accuracy',
                                        min_delta=0,
                                        mode='max',
                                        restore_best_weights=False,
                                        verbose=1)
 
-        reduce_lr = ReduceLROnPlateau(monitor='val_loss',
+        self.reduce_lr = ReduceLROnPlateau(monitor='val_loss',
                                       min_lr=0.000001,
                                       patience=1,
                                       mode='min',
@@ -69,24 +77,29 @@ class BERTModel:
     def Summary(self):
         self.Model.summary()
         
-    def Train(self, X_train, y_train):
-        history = model.fit(X_train,
+    def Train(self, X_train, y_train, X_val, y_val):
+        history = self.Model.fit(X_train,
                     y_train,
                     epochs=50,
                     batch_size=8,
                     validation_data=(X_val, y_val),
-                    callbacks=[model_checkpoint, early_stopping, reduce_lr])
+                    callbacks=[self.model_checkpoint, self.early_stopping, self.reduce_lr])
         self.History = history
         # load the best model
-        model.load_weights(ckpt_dir + '/weights_val_best.hdf5')
+        self.Model.load_weights(self.ckpt_dir + '/weights_val_best.hdf5')
         return history
-    
+
+    def Predict(self, X_test):
+        pred_probs = self.Model.predict(X_test)
+        y_pred = np.argmax(pred_probs, axis=1)
+        return y_pred
+
     def tokenize(self, sentences):
         input_ids, input_masks, input_segments = [], [], []
         for sentence in tqdm(sentences):
-            inputs = tokenizer.encode_plus(sentence, 
+            inputs = self.tokenizer.encode_plus(sentence, 
                                            add_special_tokens=True, 
-                                           max_length=MAX_LEN, 
+                                           max_length=self.MAX_LEN, 
                                            pad_to_max_length=True, 
                                            return_attention_mask=True, 
                                            return_token_type_ids=True, 
