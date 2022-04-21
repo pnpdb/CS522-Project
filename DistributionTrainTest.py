@@ -1,70 +1,45 @@
 #!/usr/bin/env python
 # coding: utf-8
-from sklearn.multiclass import OneVsRestClassifier
-from sklearn.svm import LinearSVC
-
 # Our base common modules
-from Common.DataCenter import data_center
-from Common.preprocessor import text_preprocessing_tfidf, one_hot_encoding
-from Common.UtilFuncs import print_evaluation, Evaluator, Lab
+from Common.UtilFuncs import Evaluator, Lab
 
-# Run SVM
-# parameter:  vectorised X and encoded y of training set and test set
-def run_SVM(X_train_vec, y_train_vec, X_test_vec, y_test_vec):
-    # Run SVM - fit and predict
-    SVM     = OneVsRestClassifier(LinearSVC(dual=False, class_weight='balanced'), n_jobs=-1)
-    SVM.fit(X_train_vec, y_train_vec)
-    y_pred  = SVM.predict(X_test_vec)
-    return  y_pred
+# Classifiers without denoising
+import Common.SvmMethod as SvmMethod
 
-# do an experiment without denoising
-# Parameter: training set and test set
-# Return evaluation info
-def do_experiment(train_df, test_df):
-    X_train, y_train = data_center.Xy(train_df)
-    X_test, y_test   = data_center.Xy(test_df)
+# Denoising Methodes
+import Common.IsolationForestMethod as IsolationForestMethod
+import Common.ConfidentLearningMethod as ConfidentLearningMethod
+import Common.LocalOutlierFactorMethod as LocalOutlierFactorMethod
 
-    # Convert texts to vectors
-    X_train_vec, X_test_vec = text_preprocessing_tfidf(X_train, X_test)
-    y_train_vec, y_test_vec = one_hot_encoding(y_train, y_test)
+# The settings of the noise sources.
+# Each item: source -> (size, distribution)
+noisy_set_sizes = {
+    'mislabeled' : (2000, None),                   # max size: 15000
+    'irrelevant' : (2000, [0.25,0.25,0.25,0.25]),  # max size: 34259
+    'translated' : (2000, "reserve_labels"),       # max size: 5000
+}
 
-    # Run SVM and evaluate the results
-    y_pred = run_SVM(X_train_vec, y_train_vec, X_test_vec, y_test_vec)
+# Choose a experiment without denoising
+# Each item: name -> (funcion, whether choose) note:only the first active one will be used
+experiment_without_denoising = {
+    'SVM' : (SvmMethod.do_experiment, 1),
+}
 
-    # Print the evaluation
-    print_evaluation(y_test_vec, y_pred, labels=[0,1,2,3])
-    evaluateDF = Evaluator.do_evaluate(y_test_vec, y_pred)
-    return evaluateDF
+# The training set of each experiment
+# origin_train_set_sizes = [2000, 4000, 5000, 8000, 10000, 15000, 20000]
+origin_train_set_sizes = [2000, 4000, 6000, 8000]
+noisy_train_set_sizes  = [(1500, 500), (3000, 1000), (4500,1500), (6000, 2000)]
+
+distributions = [(None, None),
+                 (None,[0.25,0.25,0.25,0.25]),
+                 ([0.25,0.25,0.25,0.25],None),
+                 ([0.25,0.25,0.25,0.25],[0.25,0.25,0.25,0.25]),
+                 ]
 
 if __name__ == '__main__':
-    # The settings of the noise sources.
-    # Each item: source -> (size, distribution)
-    noisy_set_sizes = {
-        'mislabeled' : (2000, None),                   # max size: 15000
-        'irrelevant' : (2000, [0.25,0.25,0.25,0.25]),  # max size: 34259
-        'translated' : (2000, "reserve_labels"),       # max size: 5000
-    }
-
-    # Choose a experiment without denoising
-    # Each item: name -> (funcion, whether choose) note:only the first active one will be used
-    experiment_without_denoising = {
-        'SVM' : (do_experiment, 1),
-    }
-
-    # The training set of each experiment
-    # origin_train_set_sizes = [2000, 4000, 5000, 8000, 10000, 15000, 20000]
-    origin_train_set_sizes = [2000, 4000, 6000, 8000]
-    noisy_train_set_sizes  = [(1500, 500), (3000, 1000), (4500,1500), (6000, 2000)]
-
-    distributions = [(None, None),
-                     (None,[0.25,0.25,0.25,0.25]),
-                     ([0.25,0.25,0.25,0.25],None),
-                     ([0.25,0.25,0.25,0.25],[0.25,0.25,0.25,0.25]),
-                     ]
-
     lab_filename = "saving/" + str(noisy_train_set_sizes) + ".pk"
 
-    RUN = 0      #1/0:  Run new experiments / Read results made by previous experiments
+    RUN = 1      #1/0:  Run new experiments / Read results made by previous experiments
     if RUN:
         # Run new experiments
         # Initialize the lab, which will run a serial of experiments
@@ -133,5 +108,4 @@ if __name__ == '__main__':
     # Do plot
     lab.Ev.plot(xValue = xValue, yValue = yValue, lines = lines,
                 xLabel = xLabel, title = "SVM effected by different distribution")
-
 

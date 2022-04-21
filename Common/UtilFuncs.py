@@ -247,7 +247,7 @@ class Lab():
             if bNoisy and self.experiment_denoising:
                 print("  After de-noising:")
                 # Do an experiment with de-noising first
-                if self.experiment_params is not None:
+                if self.experiment_denoising_params is not None:
                     dfResult, _ = self.experiment_denoising(train_df, test_df, *self.experiment_denoising_params)
                 else:
                     dfResult, _ = self.experiment_denoising(train_df, test_df)

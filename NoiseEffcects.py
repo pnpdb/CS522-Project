@@ -1,98 +1,68 @@
 #!/usr/bin/env python
 # coding: utf-8
-from sklearn.multiclass import OneVsRestClassifier
-from sklearn.svm import LinearSVC
-
 # Our base common modules
-from Common.DataCenter import data_center
-from Common.preprocessor import text_preprocessing_tfidf, one_hot_encoding
-from Common.UtilFuncs import print_evaluation, Evaluator, Lab
+from Common.UtilFuncs import Evaluator, Lab
+
+# Classifiers without denoising
+import Common.SvmMethod as SvmMethod
 
 # Denoising Methodes
 import Common.IsolationForestMethod as IsolationForestMethod
 import Common.ConfidentLearningMethod as ConfidentLearningMethod
 import Common.LocalOutlierFactorMethod as LocalOutlierFactorMethod
 
-# Run SVM
-# parameter:  vectorised X and encoded y of training set and test set
-def run_SVM(X_train_vec, y_train_vec, X_test_vec, y_test_vec):
-    # Run SVM - fit and predict
-    SVM             = OneVsRestClassifier(LinearSVC(dual=False, class_weight='balanced'), n_jobs=-1)
-    SVM.fit(X_train_vec, y_train_vec)
-    y_pred          = SVM.predict(X_test_vec)
-    return  y_pred
+# The settings of the noise sources.
+# Each item: source -> (size, distribution)
+noisy_set_sizes0 = {
+    'mislabeled' : (8600, None),                   # max size: 15000
+    # 'irrelevant' : (8600, [0.25,0.25,0.25,0.25]),  # max size: 34259
+    # 'translated' : (8600, "reserve_labels"),       # max size: 5000
+}
 
-# do an experiment without denoising
-# Parameter: training set and test set
-# Return evaluation info
-def do_experiment(train_df, test_df):
-    X_train, y_train = data_center.Xy(train_df)
-    X_test, y_test   = data_center.Xy(test_df)
+noisy_set_sizes1 = {
+    # 'mislabeled' : (8600, None),                   # max size: 15000
+    'irrelevant' : (8600, [0.25,0.25,0.25,0.25]),  # max size: 34259
+    # 'translated' : (8600, "reserve_labels"),       # max size: 5000
+}
 
-    # Convert texts to vectors
-    X_train_vec, X_test_vec = text_preprocessing_tfidf(X_train, X_test)
-    y_train_vec, y_test_vec = one_hot_encoding(y_train, y_test)
+noisy_set_sizes2 = {
+    # 'mislabeled' : (8600, None),                   # max size: 15000
+    # 'irrelevant' : (8600, [0.25,0.25,0.25,0.25]),  # max size: 34259
+    'translated' : (8600, 0),       # max size: 5000
+}
 
-    # Run SVM and evaluate the results
-    y_pred = run_SVM(X_train_vec, y_train_vec, X_test_vec, y_test_vec)
+noisy_set_sizes3 = {
+    # 'mislabeled' : (8600, None),                   # max size: 15000
+    # 'irrelevant' : (8600, [0.25,0.25,0.25,0.25]),  # max size: 34259
+    'translated' : (8600, 0.50),                   # max size: 5000
+}
 
-    # Print the evaluation
-    print_evaluation(y_test_vec, y_pred, labels=[0,1,2,3])
-    evaluateDF = Evaluator.do_evaluate(y_test_vec, y_pred)
-    return evaluateDF
+noisy_set_sizes4 = {
+    # 'mislabeled' : (8600, None),                   # max size: 15000
+    # 'irrelevant' : (8600, [0.25,0.25,0.25,0.25]),  # max size: 34259
+    'translated' : (8600, 1),                   # max size: 5000
+}
+
+# Choose a experiment without denoising
+# Each item: name -> (funcion, whether choose) note:only the first active one will be used
+experiment_without_denoising = {
+    'SVM' : (SvmMethod.do_experiment, 1),
+}
+
+# Choose a experiment with denoising
+# Each item: name -> (funcion, whether choose) note:only the first active one will be used
+# experiment_with_denoising = {
+#     'Confident Learning' : (do_experiment_denoised_by_ConfidentLearning, 1),
+#     'Isolation Forest'   : (do_experiment_denoised_by_IsolationForest,   0),
+# }
+
+# The training set of each experiment
+origin_train_set_sizes = [2000, 4000, 5000, 8000, 10000, 15000, 20000]
+# origin_train_set_sizes = [5000, 10000, 15000, 20000]
+noisy_train_set_sizes  = [(4000, 1000), (8000, 2000), (12000,3000), (15000, 5000)]
+# noisy_train_set_sizes  = [(1000, 2000)]
 
 if __name__ == '__main__':
-    # The settings of the noise sources.
-    # Each item: source -> (size, distribution)
-    noisy_set_sizes0 = {
-        'mislabeled' : (8600, None),                   # max size: 15000
-        # 'irrelevant' : (8600, [0.25,0.25,0.25,0.25]),  # max size: 34259
-        # 'translated' : (8600, "reserve_labels"),       # max size: 5000
-    }
-
-    noisy_set_sizes1 = {
-        # 'mislabeled' : (8600, None),                   # max size: 15000
-        'irrelevant' : (8600, [0.25,0.25,0.25,0.25]),  # max size: 34259
-        # 'translated' : (8600, "reserve_labels"),       # max size: 5000
-    }
-
-    noisy_set_sizes2 = {
-        # 'mislabeled' : (8600, None),                   # max size: 15000
-        # 'irrelevant' : (8600, [0.25,0.25,0.25,0.25]),  # max size: 34259
-        'translated' : (8600, 0),       # max size: 5000
-    }
-
-    noisy_set_sizes3 = {
-        # 'mislabeled' : (8600, None),                   # max size: 15000
-        # 'irrelevant' : (8600, [0.25,0.25,0.25,0.25]),  # max size: 34259
-        'translated' : (8600, 0.50),                   # max size: 5000
-    }
-
-    noisy_set_sizes4 = {
-        # 'mislabeled' : (8600, None),                   # max size: 15000
-        # 'irrelevant' : (8600, [0.25,0.25,0.25,0.25]),  # max size: 34259
-        'translated' : (8600, 1),                   # max size: 5000
-    }
-
-    # Choose a experiment without denoising
-    # Each item: name -> (funcion, whether choose) note:only the first active one will be used
-    experiment_without_denoising = {
-        'SVM' : (do_experiment, 1),
-    }
-
-    # Choose a experiment with denoising
-    # Each item: name -> (funcion, whether choose) note:only the first active one will be used
-    # experiment_with_denoising = {
-    #     'Confident Learning' : (do_experiment_denoised_by_ConfidentLearning, 1),
-    #     'Isolation Forest'   : (do_experiment_denoised_by_IsolationForest,   0),
-    # }
-
-    # The training set of each experiment
-    origin_train_set_sizes = [2000, 4000, 5000, 8000, 10000, 15000, 20000]
-    # origin_train_set_sizes = [5000, 10000, 15000, 20000]
-    noisy_train_set_sizes  = [(4000, 1000), (8000, 2000), (12000,3000), (15000, 5000)]
-    # noisy_train_set_sizes  = [(1000, 2000)]
-
     RUN = 1      #1/0:  Run new experiments / Read results made by previous experiments
     if RUN:
         # Run new experiments
