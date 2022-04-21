@@ -135,8 +135,6 @@ def do_experiment_BERT(train_df, test_df, *args):
     X_test_token = bert.Tokenize(X_test)
     X_val_token = bert.Tokenize(X_val)
 
-    y_train_vec, y_test_vec = one_hot_encoding(y_train, y_test)
-    y_val_vec = one_hot_encoding(y_val)
     y_train = np.array(y_train)
     y_val = np.array(y_val)
     y_test = np.array(y_test)
