@@ -6,6 +6,9 @@ from transformers import DistilBertTokenizer, TFDistilBertModel, DistilBertConfi
 from transformers import logging as hf_logging
 from tqdm import tqdm
 import numpy as np
+from Common.DataCenter import data_center
+from Common.preprocessor import one_hot_encoding
+
 class BERTModel:
     def __init__(self):
         self.MODEL_NAME = 'distilbert-base-uncased'
@@ -94,7 +97,7 @@ class BERTModel:
         y_pred = np.argmax(pred_probs, axis=1)
         return y_pred
 
-    def tokenize(self, sentences):
+    def Tokenize(self, sentences):
         input_ids, input_masks, input_segments = [], [], []
         for sentence in tqdm(sentences):
             inputs = self.tokenizer.encode_plus(sentence, 
@@ -109,3 +112,38 @@ class BERTModel:
             input_segments.append(inputs['token_type_ids'])       
 
         return np.asarray(input_ids, dtype='int32'), np.asarray(input_masks, dtype='int32')
+
+
+# do an experiment without denoising
+# Parameter: original X,y of training set and test set
+# Return evaluation info
+def do_experiment(train_df, test_df, lab):
+    X_train, y_train = data_center.Xy(train_df)
+    X_test, y_test   = data_center.Xy(test_df)
+    
+    valSet = lab.dc.get_validation()
+    X_val = valSet[0]
+    y_val = valSet[1]
+
+    # Convert texts to vectors
+    bert = BERTModel()
+    bert.Init()
+
+    X_train_token = bert.Tokenize(X_train)
+    X_test_token = bert.Tokenize(X_test)
+    X_val_token = bert.Tokenize(X_val)
+
+    y_train_vec, y_test_vec = one_hot_encoding(y_train, y_test)
+    y_val_vec = one_hot_encoding(y_val)
+
+    
+   
+
+    bert.Train(X_train_token, y_train_vec, X_val_token, y_val_vec)
+    y_pred = bert.Predict(X_test_token)
+    
+
+    # Print the evaluation
+    print_evaluation(y_test_vec, y_pred, labels=[0,1,2,3])
+    evaluateDF = Evaluator.do_evaluate(y_test_vec, y_pred)
+    return evaluateDF
