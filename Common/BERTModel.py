@@ -118,7 +118,8 @@ class BERTModel:
 # do an experiment without denoising
 # Parameter: original X,y of training set and test set
 # Return evaluation info
-def do_experiment_BERT(train_df, test_df, lab):
+def do_experiment_BERT(train_df, test_df, *args):
+    lab = args[0]
     X_train, y_train = data_center.Xy(train_df)
     X_test, y_test   = data_center.Xy(test_df)
     
