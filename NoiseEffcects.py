@@ -62,7 +62,7 @@ origin_train_set_sizes = [2000, 4000, 5000, 8000, 10000, 15000, 20000]
 noisy_train_set_sizes  = [(4000, 1000), (8000, 2000), (12000,3000), (15000, 5000)]
 # noisy_train_set_sizes  = [(1000, 2000)]
 
-RUN = 0      #1/0:  Run new experiments / Read results made by previous experiments
+RUN = 1      #1/0:  Run new experiments / Read results made by previous experiments
 
 if __name__ == '__main__':
     if RUN:
