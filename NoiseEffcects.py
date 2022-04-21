@@ -62,8 +62,9 @@ origin_train_set_sizes = [2000, 4000, 5000, 8000, 10000, 15000, 20000]
 noisy_train_set_sizes  = [(4000, 1000), (8000, 2000), (12000,3000), (15000, 5000)]
 # noisy_train_set_sizes  = [(1000, 2000)]
 
+RUN = 0      #1/0:  Run new experiments / Read results made by previous experiments
+
 if __name__ == '__main__':
-    RUN = 1      #1/0:  Run new experiments / Read results made by previous experiments
     if RUN:
         # Run new experiments
         # Initialize the lab, which will run a serial of experiments
@@ -104,7 +105,7 @@ if __name__ == '__main__':
     lab.print()
 
     # Plot the evaluations
-    lab.plot()
+    # lab.plot()
 
     # Plot training set size vs. Macro F1
     # x coordinate
