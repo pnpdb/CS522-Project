@@ -48,7 +48,7 @@ noisy_set_sizes4 = {
 # Each item: name -> (funcion, whether choose) note:only the first active one will be used
 experiment_without_denoising = {
     'SVM' : (SvmMethod.do_experiment, 0),
-    'BERT' : (do_experiment_BERT, 0),
+    'BERT' : (do_experiment_BERT, 1),
 }
 
 # Choose a experiment with denoising
@@ -110,32 +110,35 @@ if __name__ == '__main__':
     # Plot the evaluations
     # lab.plot()
 
-    # Plot training set size vs. Macro F1
-    # x coordinate
-    # xValue  = "x['Origin']+x['Noise']"
-    # xLabel  = "Training set total size\nnoisy sets: %s" % \
-    #           str([str(x[0])+'+'+str(x[1]) for x in noisy_train_set_sizes]).replace("\'","")
+    for i in range(2):
+        # Plot training set size vs. Macro F1
 
-    xValue  = "x['Origin']"
-    xLabel  = "Training set origin part size\nnoisy sets: %s" % \
-              str([str(x[0])+'+'+str(x[1]) for x in noisy_train_set_sizes]).replace("\'","")
+        # x coordinate
+        if i == 0:
+            xValue  = "x['Origin']+x['Noise']"
+            xLabel  = "Training set total size\nnoisy sets: %s" % \
+                      str([str(x[0])+'+'+str(x[1]) for x in noisy_train_set_sizes]).replace("\'","")
+        else:
+            xValue  = "x['Origin']"
+            xLabel  = "Training set origin part size\nnoisy sets: %s" % \
+                      str([str(x[0])+'+'+str(x[1]) for x in noisy_train_set_sizes]).replace("\'","")
 
-    # y coordinate
-    yValue  = "y['Macro F1']"
+        # y coordinate
+        yValue  = "y['Macro F1']"
 
-    # Divide experiments into several groups, each will be plotted as a line
-    len1 = len(origin_train_set_sizes)
-    len2 = len(noisy_train_set_sizes)
-    lines = { # each item: name, filter
-        'Original Data':       "int((df['Experiment']-1)/%d)==0"%len1,
-        'Mislabeled Noise':    "int((df['Experiment']-1-%d)/%d)==0 and df['Experiment']-1-%d>=0"%(len1,len2,len1),
-        'Irrelevant Noise':    "int((df['Experiment']-1-%d)/%d)==1"%(len1,len2),
-        'Translated Noise(0% mislabeled)':    "int((df['Experiment']-1-%d)/%d)==2"%(len1,len2),
-        'Translated Noise(50% mislabeled)':   "int((df['Experiment']-1-%d)/%d)==3"%(len1,len2),
-        'Translated Noise(100% mislabeled)':  "int((df['Experiment']-1-%d)/%d)==4"%(len1,len2),
-    }
+        # Divide experiments into several groups, each will be plotted as a line
+        len1 = len(origin_train_set_sizes)
+        len2 = len(noisy_train_set_sizes)
+        lines = { # each item: name, filter
+            'Original Data':       "int((df['Experiment']-1)/%d)==0"%len1,
+            'Mislabeled Noise':    "int((df['Experiment']-1-%d)/%d)==0 and df['Experiment']-1-%d>=0"%(len1,len2,len1),
+            'Irrelevant Noise':    "int((df['Experiment']-1-%d)/%d)==1"%(len1,len2),
+            'Translated Noise(0% mislabeled)':    "int((df['Experiment']-1-%d)/%d)==2"%(len1,len2),
+            'Translated Noise(50% mislabeled)':   "int((df['Experiment']-1-%d)/%d)==3"%(len1,len2),
+            'Translated Noise(100% mislabeled)':  "int((df['Experiment']-1-%d)/%d)==4"%(len1,len2),
+        }
 
-    # Do plot
-    lab.Ev.plot(xValue = xValue, yValue = yValue, lines = lines,
-                xLabel = xLabel, title = "SVM effected by various noises")
+        # Do plot
+        lab.Ev.plot(xValue = xValue, yValue = yValue, lines = lines,
+                    xLabel = xLabel, title = "SVM effected by various noises")
 
