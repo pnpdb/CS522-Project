@@ -6,7 +6,7 @@ from sklearn.svm import LinearSVC
 # Our base common modules
 from Common.DataCenter import data_center
 from Common.preprocessor import text_preprocessing_tfidf, one_hot_encoding
-from Common.UtilFuncs import print_evaluation, Evaluator, Lab
+from Common.UtilFuncs import print_evaluation, Evaluator
 
 # Run SVM
 # parameter:  vectorised X and encoded y of training set and test set
