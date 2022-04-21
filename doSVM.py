@@ -53,7 +53,7 @@ if __name__ == '__main__':
     }
 
     # Choose a experiment without denoising
-    # Each item: name -> (funcion, whether choose) note:only the first active one will be used
+    # Each item: name -> (function, whether choose) note:only the first active one will be used
     experiment_without_denoising = {
         'SVM without denoising' : (do_experiment, ("a","b"), 1),
     }
