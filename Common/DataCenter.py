@@ -469,13 +469,13 @@ class data_center():
     def print_summary(self):
         print("###################################### Data Summary #############################################")
         # print("  Raw set (not cleaned) size: %d"    % self.get_raw_len())
-        print("  Original set size: %d"             % self.get_len())
+        print("  Total data size: %d"             % self.get_len())
         data_center.show_distribution("      sentiments", ['Anti','Neutral','Pro','News'], self.distribution)
-        print("  Training set size: %d"             % self.get_train_len())
-        print("  Test set size: %d"                 % self.get_test_len())
-        print("  Noisy set size: %d"                % self.get_noisy_len())
+        print("  Training data size: %d"             % self.get_train_len())
+        print("  Test data data: %d"                 % self.get_test_len())
+        print("  Noisy data data: %d"                % self.get_noisy_len())
         if len(self.get_validation()[0]):
-            print("  Validation set size: %d"           % len(self.get_validation()[0]))
+            print("  Validation data size: %d"           % len(self.get_validation()[0]))
         self.print_noise_source_distribution("      noise sources")
         print("##################################################################################################")
 

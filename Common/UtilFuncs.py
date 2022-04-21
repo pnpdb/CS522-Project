@@ -3,6 +3,7 @@ from IPython.display import display
 from Common.DataCenter import data_center
 import pandas as pd
 import pickle
+import os
 import matplotlib.pyplot as plt
 
 # Print the evaluation
@@ -154,6 +155,8 @@ class Lab():
         self.experiment_denoising_name  = ""
         self.last_index                 = 0
         self.noisy_train_set_sizes      = None
+        self.train_dist                 = None
+        self.test_dist                  = None
         self.__create_sets()
 
     def suffle(self, rseed):
@@ -165,6 +168,10 @@ class Lab():
 
     def clear(self):
         self.Ev.clear()
+
+    def set_distribution(self, train_dist, test_dist):
+        self.train_dist      = train_dist
+        self.test_dist       = test_dist
 
     def __create_sets(self):
         self.dc =  data_center(self.data_file,
@@ -197,9 +204,7 @@ class Lab():
         experiment_no   = self.Ev.get_last_index() + 1
 
         # Get the test set for evaluation
-        test_df = dc.get_test_df()
-
-        train_distribution  = None
+        test_df = dc.get_test_df(4000, self.test_dist)
 
         # Run experiments with different training sets, and use the same test set.
         for size in train_set_sizes:
@@ -208,7 +213,7 @@ class Lab():
                 bNoisy  = True
 
             if bNoisy:
-                train_df = dc.get_train_with_noisy_df(size[0], size[1], train_distribution)
+                train_df = dc.get_train_with_noisy_df(size[0], size[1], self.train_dist)
                 X_noisy          = train_df[train_df['noise'] != 0]
                 print("*%2d> Noisy training set size: %d samples (%d original, %d noisy)"
                       % (experiment_no, len(train_df), size[0], size[1]))
@@ -216,7 +221,7 @@ class Lab():
                 dc.print_noise_source_distribution("  Noise sources")
                 print("  Before de-noising:")
             else:
-                train_df = dc.get_train_df(size, train_distribution)
+                train_df = dc.get_train_df(size, self.train_dist)
                 print("*%2d> Training set size: %d samples" % (experiment_no, len(train_df)))
                 data_center.print_distribution("  Sentiments", train_df['sentiment'])
 
@@ -286,6 +291,9 @@ class Lab():
         return None
 
     def save(self, filename):
+        dir, _ = os.path.split(filename)
+        if (os.path.exists(dir) == False):
+            os.mkdir(dir)
         with open(filename , "wb") as fh:
             pickle.dump(self, fh)
 
