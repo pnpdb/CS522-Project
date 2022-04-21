@@ -59,9 +59,9 @@ if __name__ == '__main__':
     # Choose a experiment with denoising
     # Each item: name -> (funcion, whether choose) note:only the first active one will be used
     experiment_with_denoising = {
-        'Confident Learning' : (ConfidentLearningMethod.do_experiment_with_denoising_for_SVM,   1),
+        'Confident Learning' : (ConfidentLearningMethod.do_experiment_with_denoising_for_SVM,   0),
         'Isolation Forest'   : (IsolationForestMethod.do_experiment_with_denoising_for_SVM,     0),
-        'LocalOutlierFactor' : (LocalOutlierFactorMethod.do_experiment_with_denoising_for_SVM,  0),
+        'LocalOutlierFactor' : (LocalOutlierFactorMethod.do_experiment_with_denoising_for_SVM,  1),
     }
 
     # The training set of each experiment
@@ -70,7 +70,11 @@ if __name__ == '__main__':
     noisy_train_set_sizes  = [(4000, 1000), (8000, 2000), (15000, 5000)]
 
     # Initialize the lab, which will run a serial of experiments
+    # Split the database into training set, test set, noisy set, validation set
     lab = Lab("twitter_sentiment_data_clean.csv", noisy_sources = noisy_set_sizes, total_train_size = 20000, total_test_size = 4000)
+
+    # Review the summary of the whole data
+    lab.dc.print_summary()
 
     # To see the data features via a demo
     train_df = lab.dc.get_train_with_noisy_df(15000, 5000)
@@ -83,10 +87,10 @@ if __name__ == '__main__':
     if lab_filename is None:
         print("Nothing to do.")
         exit(0)
-    lab_filename += str(noisy_train_set_sizes) + ".pk"
+    lab_filename = "saving/" + lab_filename + str(noisy_train_set_sizes) + ".pk"
 
     # Run new experiments (or just review the evaluations saved by previous experiments)
-    RUN = 1
+    RUN = 0
     if RUN:     # Run new experiments
         # Set the function to classify data without denoising
         lab.set_experiment_no_denoising(experiment_without_denoising)
