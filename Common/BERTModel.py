@@ -9,14 +9,19 @@ import numpy as np
 from Common.DataCenter import data_center
 from Common.preprocessor import one_hot_encoding
 from Common.UtilFuncs import print_evaluation, Evaluator, Lab
+import matplotlib.pyplot as plt
 
 class BERTModel:
+    sInstance = None
     def __init__(self):
         self.MODEL_NAME = 'distilbert-base-uncased'
         self.MAX_LEN = 360
         self.Model = None
         self.History = None
+        BERTModel.sInstance = self
         pass
+
+    
     
     def Init(self):
         '''
@@ -35,7 +40,7 @@ class BERTModel:
         X = TFBert(input_ids = input_ids_layer, attention_mask = input_masks_layer)[0]
         # X = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(256, return_sequences=True))(X)
         # X = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(128))(X)
-        X = tf.keras.layers.Dropout(0.2)(X)
+        X = tf.keras.layers.Dropout(0.7)(X)
         X = tf.keras.layers.Dense(1024, activation=tfa.activations.mish)(X)
         X = tf.keras.layers.Flatten()(X)
         X = tf.keras.layers.Dense(4, activation=tf.nn.softmax)(X)
@@ -114,6 +119,28 @@ class BERTModel:
 
         return np.asarray(input_ids, dtype='int32'), np.asarray(input_masks, dtype='int32')
 
+    def plot_graphs(self, metric, title=''):
+        plt.figure(figsize=(8, 6))
+        plt.plot(self.History.history[metric],  label='Training')
+        plt.xlabel('Epochs')
+        plt.ylabel(metric)
+        plt.title(title)
+        plt.legend()
+        plt.show()
+
+    def PrintLoss(self):
+        plt.figure(figsize=(8, 6))
+        plt.plot(self.History.history["loss"],  label='Training')
+        plt.plot(self.History.history["val_loss"],  label='Validation')
+        plt.xlabel('Epochs')
+        plt.ylabel("loss")
+        plt.title("Training Loss")
+        plt.legend()
+        plt.show()
+        pass
+
+    def PrintAccuracy(self):
+        self.plot_graphs(self.History, 'accuracy', 'Accuracy')
 
 # do an experiment without denoising
 # Parameter: original X,y of training set and test set
