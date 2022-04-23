@@ -18,7 +18,9 @@ class BERTModel:
         self.MAX_LEN = 360
         self.Model = None
         self.History = None
-        BERTModel.sInstance = self
+        if BERTModel.sInstance is None:
+            BERTModel.sInstance = []
+        BERTModel.sInstance.append(self)
         pass
 
     
@@ -84,6 +86,7 @@ class BERTModel:
         pass
     
     def Summary(self):
+        
         self.Model.summary()
         
     def Train(self, X_train, y_train, X_val, y_val):
@@ -97,6 +100,10 @@ class BERTModel:
         # load the best model
         self.Model.load_weights(self.ckpt_dir + '/weights_val_best.hdf5')
         return history
+    
+    def Clear(self):
+        self.Model = None
+        self.tokenizer = None
 
     def Predict(self, X_test):
         pred_probs = self.Model.predict(X_test)
@@ -140,7 +147,7 @@ class BERTModel:
         pass
 
     def PrintAccuracy(self):
-        self.plot_graphs(self.History, 'accuracy', 'Accuracy')
+        self.plot_graphs( 'accuracy', 'Accuracy')
 
 # do an experiment without denoising
 # Parameter: original X,y of training set and test set
@@ -175,4 +182,5 @@ def do_experiment_BERT(train_df, test_df, *args):
     # Print the evaluation
     print_evaluation(y_test, y_pred, labels=[0,1,2,3])
     evaluateDF = Evaluator.do_evaluate(y_test, y_pred)
+    bert.Clear()
     return evaluateDF
