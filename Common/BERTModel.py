@@ -64,9 +64,9 @@ class BERTModel:
                                    verbose=0)
 
         self.early_stopping = EarlyStopping(patience=2,
-                                       monitor='val_loss',
+                                       monitor='val_accuracy',
                                        min_delta=0,
-                                       mode='min',
+                                       mode='max',
                                        restore_best_weights=False,
                                        verbose=1)
 
