@@ -11,16 +11,15 @@ from Common.preprocessor import one_hot_encoding
 from Common.UtilFuncs import print_evaluation, Evaluator, Lab
 import matplotlib.pyplot as plt
 
+
 class BERTModel:
-    sInstance = None
+    HistoryFilePrefix = ""
+    HistoryFileSaveIndex = 0
     def __init__(self):
         self.MODEL_NAME = 'distilbert-base-uncased'
         self.MAX_LEN = 360
         self.Model = None
-        self.History = None
-        if BERTModel.sInstance is None:
-            BERTModel.sInstance = []
-        BERTModel.sInstance.append(self)
+        self.History = None        
         pass
 
     
@@ -85,8 +84,7 @@ class BERTModel:
 
         pass
     
-    def Summary(self):
-        
+    def Summary(self):        
         self.Model.summary()
         
     def Train(self, X_train, y_train, X_val, y_val):
@@ -125,10 +123,16 @@ class BERTModel:
             input_segments.append(inputs['token_type_ids'])       
 
         return np.asarray(input_ids, dtype='int32'), np.asarray(input_masks, dtype='int32')
-
-    def plot_graphs(self, metric, title=''):
+    
+    def SaveHistory(self):
+        savingPath = "saving/Hist_" + BERTModel.HistoryFilePrefix + str(BERTModel.HistoryFileSaveIndex)
+        BERTModel.HistoryFileSaveIndex += 1
+        np.save(savingPath, self.History)
+        pass
+    @staticmethod
+    def plot_graphs(history_data, metric, title=''):
         plt.figure(figsize=(8, 6))
-        plt.plot(self.History.history[metric],  label='Training')
+        plt.plot(history_data.history[metric],  label='Training')
         plt.xlabel('Epochs')
         plt.ylabel(metric)
         plt.title(title)
@@ -136,18 +140,33 @@ class BERTModel:
         plt.show()
 
     def PrintLoss(self):
+        BERTModel.PrintLossWithHistory(self.History)        
+        pass
+
+    def PrintAccuracy(self):
+        BERTModel.plot_graphs( self.History, 'accuracy', 'Accuracy')
+        
+    @staticmethod
+    def PrintLossWithHistory(history_data):
         plt.figure(figsize=(8, 6))
-        plt.plot(self.History.history["loss"],  label='Training')
-        plt.plot(self.History.history["val_loss"],  label='Validation')
+        plt.plot(history_data.history["loss"],  label='Training')
+        plt.plot(history_data.history["val_loss"],  label='Validation')
         plt.xlabel('Epochs')
         plt.ylabel("loss")
         plt.title("Training Loss")
         plt.legend()
         plt.show()
         pass
-
-    def PrintAccuracy(self):
-        self.plot_graphs( 'accuracy', 'Accuracy')
+    
+    @staticmethod
+    def PrintAccuracyWithHistory(history_data):
+        plt.figure(figsize=(8, 6))
+        plt.plot(history_data.history[metric],  label='Training')
+        plt.xlabel('Epochs')
+        plt.ylabel()
+        plt.title(title)
+        plt.legend()
+        plt.show()
 
 # do an experiment without denoising
 # Parameter: original X,y of training set and test set
@@ -182,5 +201,9 @@ def do_experiment_BERT(train_df, test_df, *args):
     # Print the evaluation
     print_evaluation(y_test, y_pred, labels=[0,1,2,3])
     evaluateDF = Evaluator.do_evaluate(y_test, y_pred)
-    bert.Clear()
+    # print the accuracy and loss
+    bert.PrintAccuracy()
+    bert.PrintLoss()
+    bert.SaveHistory()
+    
     return evaluateDF
