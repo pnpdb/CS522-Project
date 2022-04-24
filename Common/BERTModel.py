@@ -64,7 +64,7 @@ class BERTModel:
                                    save_best_only=True,
                                    verbose=0)
 
-        self.early_stopping = EarlyStopping(patience=3,
+        self.early_stopping = EarlyStopping(patience=2,
                                        monitor='val_loss',
                                        min_delta=0,
                                        mode='min',
