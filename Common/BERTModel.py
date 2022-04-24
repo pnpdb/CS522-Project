@@ -131,9 +131,9 @@ class BERTModel:
         pd.DataFrame(self.History.history).to_csv(savingPath, index=False)
         pass
     @staticmethod
-    def plot_graphs(history_data, metric, title=''):
+    def plot_graphs(history, metric, title=''):
         plt.figure(figsize=(8, 6))
-        plt.plot(history_data.history[metric],  label='Training')
+        plt.plot(history[metric],  label='Training')
         plt.xlabel('Epochs')
         plt.ylabel(metric)
         plt.title(title)
@@ -141,17 +141,17 @@ class BERTModel:
         plt.show()
 
     def PrintLoss(self):
-        BERTModel.PrintLossWithHistory(self.History)        
+        BERTModel.PrintLossWithHistory(self.History.history)
         pass
 
     def PrintAccuracy(self):
-        BERTModel.plot_graphs( self.History, 'accuracy', 'Accuracy')
+        BERTModel.plot_graphs( self.History.history, 'accuracy', 'Accuracy')
         
     @staticmethod
-    def PrintLossWithHistory(history_data):
+    def PrintLossWithHistory(history):
         plt.figure(figsize=(8, 6))
-        plt.plot(history_data.history["loss"],  label='Training')
-        plt.plot(history_data.history["val_loss"],  label='Validation')
+        plt.plot(history["loss"],  label='Training')
+        plt.plot(history["val_loss"],  label='Validation')
         plt.xlabel('Epochs')
         plt.ylabel("loss")
         plt.title("Training Loss")
@@ -160,12 +160,13 @@ class BERTModel:
         pass
     
     @staticmethod
-    def PrintAccuracyWithHistory(history_data):
+    def PrintAccuracyWithHistory(history):
         plt.figure(figsize=(8, 6))
-        plt.plot(history_data.history[metric],  label='Training')
+        plt.plot(history['accuracy'],  label='Training')
+        plt.plot(history['val_accuracy'],  label='Validation')
         plt.xlabel('Epochs')
-        plt.ylabel()
-        plt.title(title)
+        plt.ylabel('Accuracy')
+        plt.title("Accuracy")
         plt.legend()
         plt.show()
 
