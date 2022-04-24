@@ -5,6 +5,7 @@ import pandas as pd
 import pickle
 import os
 import matplotlib.pyplot as plt
+import datetime
 
 # Print the evaluation
 def print_evaluation(y_true, y_pred, labels=[0,1,2,3]):
@@ -109,7 +110,8 @@ class Evaluator():
                                    'Sentiments distribution', 'Noise sources distribution' ]]
             display(df.set_index("Experiment"))
 
-    def plot(self, xValue, yValue, lines, title="Plot", xLabel=None, yLabel=None, colors = None, df=None, subtitle=None):
+    def plot(self, xValue, yValue, lines, title="Plot", xLabel=None, yLabel=None, colors = None,
+                df=None, subtitle=None, ymin = None, ymax = None):
         if colors is None:
             colors = ['green', 'red', 'blue', 'brown', 'pink', 'black']
         if xLabel is None:
@@ -132,6 +134,7 @@ class Evaluator():
             x = df_line.apply(lambda x: eval(xValue), axis=1)
             y = df_line.apply(lambda y: eval(yValue), axis=1)
             ax.plot(x, y, colors[i], label=k)
+            ax.set_ylim(ymin = ymin, ymax = ymax)
             plt.scatter(x, y, marker="o", s=10)
             i = (i+1) % len(colors)
 
@@ -160,6 +163,7 @@ class Lab():
         self.train_dist                 = None
         self.test_dist                  = None
         self.__create_sets()
+        print("Start experiments at %s", str(datetime.datetime.today()))
 
     def suffle(self, rseed):
         self.dc.shuffle(rseed)
@@ -292,6 +296,8 @@ class Lab():
                 subtitle = data_center.distribution2str(
                           "noise sources: ", self.dc.get_noise_source_distribution(), 3)
                 )
+
+        print("Plot at %s", str(datetime.datetime.today()))
 
     @staticmethod
     def get_active_experiment_name(experiments):

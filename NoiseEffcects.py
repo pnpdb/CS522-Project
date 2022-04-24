@@ -139,7 +139,7 @@ if __name__ == '__main__':
         }
 
         # Do plot
-        lab.Ev.plot(xValue = xValue, yValue = yValue, lines = lines,
+        lab.Ev.plot(xValue = xValue, yValue = yValue, lines = lines, ymin = 0.5, ymax = 0.72,
                     xLabel = xLabel, title = "SVM effected by various noises")
 
     lab.Ev.get_evaluate().to_csv("saving/noise_effect.csv")

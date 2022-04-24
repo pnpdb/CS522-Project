@@ -108,7 +108,7 @@ class data_center():
                       % (size, dist[i], set_size))
                 exit(-1)
             if c > 0:
-                df  = pd.concat([df, self.dfs[i][s : s + c]])
+                df  = pd.concat([df, self.dfs[i][s : s + c]], sort=False)
         df = sklearn.utils.shuffle(df[:size], random_state=self.rseed)
         return df
 
@@ -308,7 +308,7 @@ class data_center():
 
         if len(lstTweetid) == length:
             # use tweetid to drop samples which exists in test set
-            dfForDrop   = pd.concat([self.get_test_df()[['sentiment','message','tweetid']], df])
+            dfForDrop   = pd.concat([self.get_test_df()[['sentiment','message','tweetid']], df], sort=False)
             dfForDrop   = dfForDrop.drop_duplicates(subset=['tweetid'],keep="first")
             df          = dfForDrop[self.get_test_len():]
 
@@ -334,7 +334,7 @@ class data_center():
         if self.dfNoisy is None:
             self.dfNoisy = self.get_original_noisy()
         if len(self.dfNoisy):
-            self.dfNoisy    = pd.concat([self.dfNoisy, df])
+            self.dfNoisy    = pd.concat([self.dfNoisy, df], sort=False)
         else:
             self.dfNoisy    = df
 
@@ -378,7 +378,7 @@ class data_center():
         dfNoisy3  = dfNoisy3[:translated_size]
 
         dfNoisy12 = dfNoisy12[:noisy_size-translated_size]
-        dfNoisy   = pd.concat([dfNoisy12, dfNoisy3])
+        dfNoisy   = pd.concat([dfNoisy12, dfNoisy3], sort=False)
         if noisy_size > len(dfNoisy):
             raise Exception("Requiring %d noisy data, but only %d available!" % (noisy_size, len(dfNoisy)))
 
@@ -392,7 +392,7 @@ class data_center():
         #     dfNoisy = dfNoisy.loc[test_index,]
         #     break
 
-        df = pd.concat([dfTrain, dfNoisy])
+        df = pd.concat([dfTrain, dfNoisy], sort=False)
         df = sklearn.utils.shuffle(df, random_state=self.rseed)  #shuffle
 
         return self.__add_noise_id_column(df).reset_index()
