@@ -10,7 +10,7 @@ from Common.DataCenter import data_center
 from Common.preprocessor import one_hot_encoding
 from Common.UtilFuncs import print_evaluation, Evaluator, Lab
 import matplotlib.pyplot as plt
-
+import pandas as pd
 
 class BERTModel:
     HistoryFilePrefix = ""
@@ -125,9 +125,10 @@ class BERTModel:
         return np.asarray(input_ids, dtype='int32'), np.asarray(input_masks, dtype='int32')
     
     def SaveHistory(self):
-        savingPath = "saving/Hist_" + BERTModel.HistoryFilePrefix + str(BERTModel.HistoryFileSaveIndex)
+        savingPath = "saving/Hist_" + BERTModel.HistoryFilePrefix + str(BERTModel.HistoryFileSaveIndex) + ".csv"
         BERTModel.HistoryFileSaveIndex += 1
-        np.save(savingPath, self.History)
+        #np.save(savingPath, self.History)
+        pd.DataFrame(self.History.history).to_csv(savingPath, index=False)
         pass
     @staticmethod
     def plot_graphs(history_data, metric, title=''):
