@@ -54,7 +54,7 @@ if __name__ == '__main__':
                       str([str(x[0])+'+'+str(x[1]) for x in noisy_train_set_sizes]).replace("\'","")
 
         # y coordinate
-        yValue  = "y['Macro F1']"
+        yValue  = "y['Micro F1']"
 
         # Divide experiments into several groups, each will be plotted as a line
         len1 = len(origin_train_set_sizes)
