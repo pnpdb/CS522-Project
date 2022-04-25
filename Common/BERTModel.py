@@ -148,25 +148,25 @@ class BERTModel:
         BERTModel.plot_graphs( self.History.history, 'accuracy', 'Accuracy')
         
     @staticmethod
-    def PrintLossWithHistory(history):
+    def PrintLossWithHistory(title, history):
         plt.figure(figsize=(8, 6))
         plt.plot(history["loss"],  label='Training')
         plt.plot(history["val_loss"],  label='Validation')
         plt.xlabel('Epochs')
         plt.ylabel("loss")
-        plt.title("Training Loss")
+        plt.title(title)
         plt.legend()
         plt.show()
         pass
     
     @staticmethod
-    def PrintAccuracyWithHistory(history):
+    def PrintAccuracyWithHistory(title, history):
         plt.figure(figsize=(8, 6))
         plt.plot(history['accuracy'],  label='Training')
         plt.plot(history['val_accuracy'],  label='Validation')
         plt.xlabel('Epochs')
         plt.ylabel('Accuracy')
-        plt.title("Accuracy")
+        plt.title(title)
         plt.legend()
         plt.show()
 
