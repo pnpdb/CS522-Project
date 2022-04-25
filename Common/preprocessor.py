@@ -59,11 +59,8 @@ def text_preprocessing_tfidf(X_train, X_test):
 # One-hot encoding, convert the labels to vectors (4 x 1) each
 # parameter: original y of training set, original y of test set
 # return:  encoded y of training set and test set
-def one_hot_encoding(y_train, y_test = None):
+def one_hot_encoding(y_train, y_test):
     mlb          = MultiLabelBinarizer()
     y_train_vec  = mlb.fit_transform(map(str, y_train))
-    if y_test != None:
-        y_test_vec   = mlb.transform(map(str, y_test))
-        return y_train_vec, y_test_vec
-    else:
-        return y_train_vec
+    y_test_vec   = mlb.transform(map(str, y_test))
+    return y_train_vec, y_test_vec

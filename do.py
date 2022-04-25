@@ -29,7 +29,7 @@ experiment_without_denoising = {
 # Choose a experiment with denoising
 # Each item: name -> (funcion, args-optional, whether choose) note:only the first active one will be used
 experiment_with_denoising = {
-    'Confident Learning' : (ConfidentLearningMethod.do_experiment_with_denoising_for_SVM,   0),
+    'Confident Learning' : (ConfidentLearningMethod.do_experiment_with_denoising_for_SVM,   1),
     'Isolation Forest'   : (IsolationForestMethod.do_experiment_with_denoising_for_SVM,     0),
     'LocalOutlierFactor' : (LocalOutlierFactorMethod.do_experiment_with_denoising_for_SVM,  1),
 }
