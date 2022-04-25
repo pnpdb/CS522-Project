@@ -67,14 +67,14 @@ class data_center():
             if 'irrelevant' in noisy_set_sizes.keys() and noisy_set_sizes['irrelevant'][0] > 0:
                 # distribution of irrelevant noisy
                 added_size = self.add_noisy(noisy_source="irrelevant", distribution = noisy_set_sizes['irrelevant'][1],
-                                          size = noisy_set_sizes['irrelevant'][0])
+                                            size = noisy_set_sizes['irrelevant'][0])
                 if do_verb:
                     print("%d noisy samples of '%s' added"  % (added_size, 'irrelevant'))
 
             # add the external noisy data (translated texts). use the labels of each noisy data
             if 'translated' in noisy_set_sizes.keys() and noisy_set_sizes['translated'][0] > 0:
                 added_size = self.add_noisy(noisy_source="translated", distribution = noisy_set_sizes['translated'][1],
-                                          size = noisy_set_sizes['translated'][0])
+                                            size = noisy_set_sizes['translated'][0])
                 if do_verb:
                     print("%d noisy samples of '%s' added"  % (added_size, 'translated'))
 
@@ -168,12 +168,16 @@ class data_center():
     # return: X and y of noisy set
     # distribution: the 'sentiment' distribution. None if use the distribution of the whole original set
     def get_validation(self, size=None, distribution = None):
+        df = self.get_validation_df(size, distribution)
+        return list(df['message']), list(df['sentiment'])
+
+    def get_validation_df(self, size=None, distribution = None):
         if size is None:
             size = self.validation_size
         if size > self.validation_size:
             raise Exception("The size %d is large than the max validation size %d!" % (size, self.validation_size))
         df = self.__get_subset(self.train_size + self.test_size, self.validation_size, size, distribution)
-        return list(df['message']), list(df['sentiment'])
+        return df
 
     # Get a original noisy set with is generated form the origianl set by mislabeling
     # size: size of the noisy set
@@ -340,7 +344,7 @@ class data_center():
 
         dftmp = self.__add_noise_id_column(self.dfNoisy )
         self.noise_source_distribution = tuple([list(dftmp['noise']).count(x)*1./len(dftmp)
-                                            for x in set(data_center.noise_sources.values())-set([0])])
+                                                for x in set(data_center.noise_sources.values())-set([0])])
 
         return len(df)
 
@@ -527,7 +531,7 @@ class data_center():
     # conver distribution to a string
     def distribution2str(hint, distribution, class_count):
         return  "%s[%s]" % ("" if hint is None else hint,
-            ("%.1f%%, "*(class_count-1)+"%.1f%%") % tuple([x*100 for x in distribution]))
+                            ("%.1f%%, "*(class_count-1)+"%.1f%%") % tuple([x*100 for x in distribution]))
 
     @staticmethod
     def print_data(df):

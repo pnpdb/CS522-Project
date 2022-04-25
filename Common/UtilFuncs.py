@@ -111,7 +111,7 @@ class Evaluator():
             display(df.set_index("Experiment"))
 
     def plot(self, xValue, yValue, lines, title="Plot", xLabel=None, yLabel=None, colors = None,
-                df=None, subtitle=None, ymin = None, ymax = None):
+             df=None, subtitle=None, ymin = None, ymax = None):
         if colors is None:
             colors = ['green', 'red', 'blue', 'brown', 'pink', 'black']
         if xLabel is None:
@@ -189,6 +189,8 @@ class Lab():
     # Paramter experiment is like: def do_experiment(train_df, test_df) which return EV:
     def set_experiment_no_denoising(self, experiments):
         self.experiment = None
+        if experiments is None:
+            return
         for name, v in experiments.items():
             if v[-1]:
                 self.experiment         = v[0]
@@ -200,6 +202,8 @@ class Lab():
     # Paramter experiment is like: def do_experiment_denoising(train_df, test_df) which return EV and other_info:
     def set_experiment_with_denoising(self, experiments_denoising):
         self.experiment_denoising = None
+        if experiments_denoising is None:
+            return
         for name, v in experiments_denoising.items():
             if v[-1]:
                 self.experiment_denoising         = v[0]
@@ -240,13 +244,13 @@ class Lab():
                 dfResult = self.experiment(train_df, test_df)
             if bNoisy:
                 self.Ev.add_evaluation(dfResult, size[0], size[1], "N",
-                                  data_center.calc_distribution_str(train_df['sentiment'], 'sentiment', [0,1,2,3]),
-                                  data_center.calc_distribution_str(X_noisy, 'noise', [1,2,3]),
-                                  experiment_no)
+                                       data_center.calc_distribution_str(train_df['sentiment'], 'sentiment', [0,1,2,3]),
+                                       data_center.calc_distribution_str(X_noisy, 'noise', [1,2,3]),
+                                       experiment_no)
             else:
                 self.Ev.add_evaluation(dfResult, size, 0, "-",
-                                  data_center.calc_distribution_str(train_df['sentiment'], 'sentiment', [0,1,2,3]),
-                                  "-", experiment_no)
+                                       data_center.calc_distribution_str(train_df['sentiment'], 'sentiment', [0,1,2,3]),
+                                       "-", experiment_no)
 
             if bNoisy and self.experiment_denoising:
                 print("  After de-noising:")
@@ -256,9 +260,9 @@ class Lab():
                 else:
                     dfResult, _ = self.experiment_denoising(train_df, test_df)
                 self.Ev.add_evaluation( dfResult, size[0], size[1], "Y",
-                                   data_center.calc_distribution_str(train_df['sentiment'], 'sentiment', [0,1,2,3]),
-                                   data_center.calc_distribution_str(X_noisy, 'noise', [1,2,3]),
-                                   experiment_no + len(train_set_sizes))
+                                        data_center.calc_distribution_str(train_df['sentiment'], 'sentiment', [0,1,2,3]),
+                                        data_center.calc_distribution_str(X_noisy, 'noise', [1,2,3]),
+                                        experiment_no + len(train_set_sizes))
 
                 self.noisy_train_set_sizes  = train_set_sizes
 
@@ -269,7 +273,7 @@ class Lab():
     def print(self):
         self.Ev.print()
 
-    def plot(self):
+    def plot(self, title = None):
         # Plot training set size vs. Macro F1
         # x coordinate
         xValue  = "x['Origin']+x['Noise']"
@@ -289,21 +293,36 @@ class Lab():
             'Denoised Data':    "df['Denoised']=='Y'",
         }
 
+        if title is None:
+            if self.experiment_denoising_name is not None:
+                if self.experiment_denoising_name.upper().find("SVM") != -1:
+                    title = 'SVM using %s for de-noising' % self.experiment_denoising_name
+                else:
+                    title = 'BERT using %s for de-noising' % self.experiment_denoising_name
+            elif self.experiment_name is not None:
+                if self.experiment_name.upper().find("SVM") != -1:
+                    title = 'SVM without de-noising' % self.experiment_name
+                else:
+                    title = 'BERT without de-noising' % self.experiment_name
+            else:
+                title = 'Untiled'
+
         # Do plot
         self.Ev.plot(xValue = xValue, yValue = yValue, lines = lines,
-                xLabel = xLabel,
-                title = 'SVM using %s for de-noising' % self.experiment_denoising_name,
-                subtitle = data_center.distribution2str(
-                          "noise sources: ", self.dc.get_noise_source_distribution(), 3)
-                )
+                     xLabel = xLabel,
+                     title = title,
+                     subtitle = data_center.distribution2str(
+                         "noise sources: ", self.dc.get_noise_source_distribution(), 3)
+                     )
 
-        print("Plot at %s", str(datetime.datetime.today()))
+        print("Plot at ", str(datetime.datetime.today()))
 
     @staticmethod
     def get_active_experiment_name(experiments):
-        for name, v in experiments.items():
-            if v[1] == True:
-                return name
+        if experiments is not None:
+            for name, v in experiments.items():
+                if v[-1] == 1:
+                    return name
         return None
 
     def save(self, filename):
@@ -340,14 +359,14 @@ class DataSize:
     def GetValidationDataSize():
         return 1000
 
-    
+
 class NoisyDataGraph:
     def __init__(self, filepath):
         self.df = pd.read_csv("saving/noise_effect_bert_0424.csv")
         pass
-    
+
     def plot(self, xValue, yValue, lines, title="Plot", xLabel=None, yLabel=None, colors = None, df=None, subtitle=None, ymin = None, ymax = None):
-        
+
         if colors is None:
             colors = ['green', 'red', 'blue', 'brown', 'pink', 'black']
         if xLabel is None:
@@ -410,4 +429,4 @@ class NoisyDataGraph:
             }
 
             self.plot(xValue = xValue, yValue = yValue, lines = lines,
-                        xLabel = xLabel, title = "BERT effected by various noises", ymin = 0.5, ymax = 0.72, df=self.df)
+                      xLabel = xLabel, title = "BERT effected by various noises", ymin = 0.5, ymax = 0.72, df=self.df)

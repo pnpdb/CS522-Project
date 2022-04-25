@@ -47,7 +47,7 @@ noisy_set_sizes4 = {
 # Choose a experiment without denoising
 # Each item: name -> (funcion, whether choose) note:only the first active one will be used
 experiment_without_denoising = {
-    'SVM' : (SvmMethod.do_experiment, 0),
+    'SVM' : (SvmMethod.do_experiment, 1),
     'BERT' : (do_experiment_BERT, 1),
 }
 
@@ -64,7 +64,7 @@ origin_train_set_sizes = [2000, 4000, 5000, 8000, 10000, 15000, 20000]
 noisy_train_set_sizes  = [(4000, 1000), (8000, 2000), (12000,3000), (15000, 5000)]
 # noisy_train_set_sizes  = [(1000, 2000)]
 
-RUN = 0      #1/0:  Run new experiments / Read results made by previous experiments
+RUN = 1      #1/0:  Run new experiments / Read results made by previous experiments
 
 if __name__ == '__main__':
     if RUN:
