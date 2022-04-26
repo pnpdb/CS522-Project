@@ -19,24 +19,25 @@ class BERTModel:
         self.MODEL_NAME = 'distilbert-base-uncased'
         self.MAX_LEN = 360
         self.Model = None
-        self.History = None        
-        pass
+        self.History = None
+        if BERTModel.sInstance is None:
+            BERTModel.sInstance = []
+        BERTModel.sInstance.append(self)
 
-    
-    
+
     def Init(self):
         '''
         Initialize the structure of the model
         '''
-        self.tokenizer = DistilBertTokenizer.from_pretrained(self.MODEL_NAME,  
+        self.tokenizer = DistilBertTokenizer.from_pretrained(self.MODEL_NAME,
                                                 add_special_tokens=True,
-                                                max_length=self.MAX_LEN, 
+                                                max_length=self.MAX_LEN,
                                                 pad_to_max_length=True)
         bert_config = DistilBertConfig.from_pretrained(self.MODEL_NAME, output_hidden_states=True, output_attentions=True)
         TFBert = TFDistilBertModel.from_pretrained(self.MODEL_NAME, config=bert_config)
 
         input_ids_layer = tf.keras.layers.Input(shape=(self.MAX_LEN,), name='input_token', dtype='int32')
-        input_masks_layer = tf.keras.layers.Input(shape=(self.MAX_LEN,), name='masked_token', dtype='int32') 
+        input_masks_layer = tf.keras.layers.Input(shape=(self.MAX_LEN,), name='masked_token', dtype='int32')
 
         X = TFBert(input_ids = input_ids_layer, attention_mask = input_masks_layer)[0]
         # X = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(256, return_sequences=True))(X)
@@ -45,15 +46,15 @@ class BERTModel:
         X = tf.keras.layers.Dense(1024, activation=tfa.activations.mish)(X)
         X = tf.keras.layers.Flatten()(X)
         X = tf.keras.layers.Dense(4, activation=tf.nn.softmax)(X)
-        
+
         # combine the model
         model = tf.keras.Model(inputs=[input_ids_layer, input_masks_layer], outputs = X)
-        
+
         # 每层都标记为trainable
         for layer in model.layers[:3]:
             layer.trainable = True
         self.Model = model
-        
+
         self.ckpt_dir = './ckpt'
         if not os.path.exists(self.ckpt_dir):
             os.makedirs(self.ckpt_dir)
@@ -77,16 +78,16 @@ class BERTModel:
                                       factor=0.1,
                                       min_delta=0.0001,
                                       verbose=1)
-        
+
         model.compile(loss='sparse_categorical_crossentropy',
               optimizer=tfa.optimizers.RectifiedAdam(0.0001),
               metrics=['accuracy'])
 
         pass
-    
-    def Summary(self):        
+
+    def Summary(self):
         self.Model.summary()
-        
+
     def Train(self, X_train, y_train, X_val, y_val):
         history = self.Model.fit(X_train,
                     y_train,
@@ -98,7 +99,7 @@ class BERTModel:
         # load the best model
         self.Model.load_weights(self.ckpt_dir + '/weights_val_best.hdf5')
         return history
-    
+
     def Clear(self):
         self.Model = None
         self.tokenizer = None
@@ -111,19 +112,19 @@ class BERTModel:
     def Tokenize(self, sentences):
         input_ids, input_masks, input_segments = [], [], []
         for sentence in tqdm(sentences):
-            inputs = self.tokenizer.encode_plus(sentence, 
-                                           add_special_tokens=True, 
-                                           max_length=self.MAX_LEN, 
-                                           pad_to_max_length=True, 
-                                           return_attention_mask=True, 
-                                           return_token_type_ids=True, 
+            inputs = self.tokenizer.encode_plus(sentence,
+                                           add_special_tokens=True,
+                                           max_length=self.MAX_LEN,
+                                           pad_to_max_length=True,
+                                           return_attention_mask=True,
+                                           return_token_type_ids=True,
                                            truncation=True)
             input_ids.append(inputs['input_ids'])
             input_masks.append(inputs['attention_mask'])
-            input_segments.append(inputs['token_type_ids'])       
+            input_segments.append(inputs['token_type_ids'])
 
         return np.asarray(input_ids, dtype='int32'), np.asarray(input_masks, dtype='int32')
-    
+
     def SaveHistory(self):
         savingPath = "saving/Hist_" + BERTModel.HistoryFilePrefix + str(BERTModel.HistoryFileSaveIndex) + ".csv"
         BERTModel.HistoryFileSaveIndex += 1
@@ -146,7 +147,7 @@ class BERTModel:
 
     def PrintAccuracy(self):
         BERTModel.plot_graphs( self.History.history, 'accuracy', 'Accuracy')
-        
+
     @staticmethod
     def PrintLossWithHistory(title, history):
         plt.figure(figsize=(8, 6))
@@ -158,7 +159,7 @@ class BERTModel:
         plt.legend()
         plt.show()
         pass
-    
+
     @staticmethod
     def PrintAccuracyWithHistory(title, history):
         plt.figure(figsize=(8, 6))
