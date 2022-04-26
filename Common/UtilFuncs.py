@@ -361,8 +361,9 @@ class DataSize:
 
 
 class NoisyDataGraph:
-    def __init__(self, filepath):
-        self.df = pd.read_csv("saving/noise_effect_bert_0424.csv")
+    def __init__(self, filepath, title):
+        self.df = pd.read_csv(filepath)
+        self.title = title
         pass
 
     def plot(self, xValue, yValue, lines, title="Plot", xLabel=None, yLabel=None, colors = None, df=None, subtitle=None, ymin = None, ymax = None):
@@ -429,4 +430,4 @@ class NoisyDataGraph:
             }
 
             self.plot(xValue = xValue, yValue = yValue, lines = lines,
-                      xLabel = xLabel, title = "BERT effected by various noises", ymin = 0.5, ymax = 0.72, df=self.df)
+                      xLabel = xLabel, title = self.title + " effected by various noises", ymin = 0.5, ymax = 0.72, df=self.df)
