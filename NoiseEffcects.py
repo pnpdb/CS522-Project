@@ -15,7 +15,7 @@ from Common.BERTModel import do_experiment_BERT
 # The settings of the noise sources.
 # Each item: source -> (size, distribution)
 noisy_set_sizes0 = {
-    'mislabeled' : (8600, None),                   # max size: 15000
+    'mislabeled' : (7600, None),                   # max size: 15000
     # 'irrelevant' : (8600, [0.25,0.25,0.25,0.25]),  # max size: 34259
     # 'translated' : (8600, "reserve_labels"),       # max size: 5000
 }
@@ -44,13 +44,11 @@ noisy_set_sizes4 = {
     'translated' : (8600, 1),                   # max size: 5000
 }
 
-lab = Lab("twitter_sentiment_data_clean.csv", noisy_sources = noisy_set_sizes0, total_train_size = 20000, total_test_size = 4000)
-
 # Choose a experiment without denoising
 # Each item: name -> (funcion, whether choose) note:only the first active one will be used
 experiment_without_denoising = {
-    'SVM' : (SvmMethod.do_experiment, 0),
-    'BERT' : (do_experiment_BERT, lab.dc.get_validation_df(), 1)
+    'SVM' : (SvmMethod.do_experiment, 1),
+    'BERT' : (do_experiment_BERT, None, 0),
 }
 
 # Choose a experiment with denoising
@@ -66,12 +64,15 @@ origin_train_set_sizes = [2000, 4000, 5000, 8000, 10000, 15000, 20000]
 noisy_train_set_sizes  = [(4000, 1000), (8000, 2000), (12000,3000), (15000, 5000)]
 # noisy_train_set_sizes  = [(1000, 2000)]
 
-RUN = 0      #1/0:  Run new experiments / Read results made by previous experiments
+RUN = 1      #1/0:  Run new experiments / Read results made by previous experiments
 
 if __name__ == '__main__':
     if RUN:
         # Run new experiments
         # Initialize the lab, which will run a serial of experiments
+        lab = Lab("twitter_sentiment_data_clean.csv", noisy_sources = noisy_set_sizes0, total_train_size = 20000, total_test_size = 4000, validation_size=2000)
+        experiment_without_denoising['BERT'] = (do_experiment_BERT, lab.dc.get_validation_df(), 1)
+
         lab.set_experiment_no_denoising(experiment_without_denoising)
 
         # Run experiment on original data

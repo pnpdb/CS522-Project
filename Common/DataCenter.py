@@ -41,12 +41,22 @@ class data_center():
 
         self.dfOriginal         = df                    # let the cleaned set be the original set
         self.shuffle(rseed = 522)                       # shuffle the original set
-        self.train_size         = train_size if train_size is not None else len(df) - test_size - noisy_size - validation_size
+
+        remain = len(df) - test_size - self.noisy_size - validation_size
+        if train_size:
+            if remain < train_size:
+                raise Exception("No enough data for training set, require %d, but only %d available!" %
+                               (train_size, remain))
+            self.train_size = train_size
+        else:
+            self.train_size = remain
+        print("Training data size is %d" % remain)
+
         self.test_size          = test_size
         self.validation_size    = validation_size
 
         if self.train_size + self.test_size + self.validation_size + self.noisy_size > len(df):
-            raise Exception("The sum of the size of all sets is bigger than the size of the whole data set!" % (size, self.train_size))
+            raise Exception("The sum of the size of all sets %d is bigger than the size of the whole data set %d!" % (size, self.train_size))
 
         self.dfNoisy            = None                  # the noisy set
         self.noise_source_distribution  = None

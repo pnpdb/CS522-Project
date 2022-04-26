@@ -29,7 +29,7 @@ lab = Lab("twitter_sentiment_data_clean.csv", noisy_sources = noisy_set_sizes, t
 # Each item: name -> (function, args-optional, whether choose) note:only the first active one will be used
 experiment_without_denoising = {
     'SVM without denoising' : (SvmMethod.do_experiment, 0),
-    'BERT' : (BERTModel.do_experiment_BERT, lab.dc.get_validation_df(), 1)
+    'BERT  without denoising' : (BERTModel.do_experiment_BERT, lab.dc.get_validation_df(), 1)
 }
 
 # Choose a experiment with denoising

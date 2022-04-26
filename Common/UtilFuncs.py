@@ -144,7 +144,7 @@ class Evaluator():
         plt.show()
 
 class Lab():
-    def __init__(self, data_file, noisy_sources=8000, total_train_size = 20000, total_test_size = 4000, validation_size = 1000):
+    def __init__(self, data_file, noisy_sources=8000, total_train_size = 20000, total_test_size = 4000, validation_size = 2000):
         self.Ev  = Evaluator()
         self.clear()
         self.data_file                  = data_file

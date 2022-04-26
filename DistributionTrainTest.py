@@ -15,14 +15,14 @@ import Common.LocalOutlierFactorMethod as LocalOutlierFactorMethod
 # The settings of the noise sources.
 # Each item: source -> (size, distribution)
 noisy_set_sizes = {
-    'mislabeled' : (2000, None),                   # max size: 15000
-    'irrelevant' : (2000, None),  # max size: 34259
-    'translated' : (2000, "reserve_labels"),       # max size: 5000
+    'mislabeled' : (2000, None),                    # max size: 15000
+    'irrelevant' : (2000, None),                    # max size: 34259
+    'translated' : (2000, "reserve_labels"),        # max size: 5000
 }
 
 # Initialize the lab, which will run a serial of experiments
 lab = Lab("twitter_sentiment_data_clean.csv", noisy_sources = noisy_set_sizes,
-          total_train_size = 25000, total_test_size = 12500, validation_size=0)
+          total_train_size = 25000, total_test_size = 12500, validation_size=1400)
 
 # Choose a experiment without denoising
 # Each item: name -> (funcion, whether choose) note:only the first active one will be used

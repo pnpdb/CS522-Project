@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 class BERTModel:
+    sInstance = None
+
     HistoryFilePrefix = ""
     HistoryFileSaveIndex = 0
     def __init__(self):
