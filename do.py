@@ -6,6 +6,7 @@ from Common.UtilFuncs import Evaluator, Lab
 
 # Classifiers without denoising
 import Common.SvmMethod as SvmMethod
+import Common.BERTModel as BERTModel
 
 # Denoising Methodes
 import Common.IsolationForestMethod as IsolationForestMethod
@@ -20,10 +21,15 @@ noisy_set_sizes = {
     # 'translated' : (8600, 100),       # max size: 5000
 }
 
+# Initialize the lab, which will run a serial of experiments
+# Split the database into training set, test set, noisy set, validation set
+lab = Lab("twitter_sentiment_data_clean.csv", noisy_sources = noisy_set_sizes, total_train_size = 20000, total_test_size = 4000)
+
 # Choose a experiment without denoising
 # Each item: name -> (function, args-optional, whether choose) note:only the first active one will be used
 experiment_without_denoising = {
-    'SVM without denoising' : (SvmMethod.do_experiment, 1),
+    'SVM without denoising' : (SvmMethod.do_experiment, 0),
+    'BERT' : (BERTModel.do_experiment_BERT, lab.dc.get_validation_df(), 1)
 }
 
 # Choose a experiment with denoising
@@ -35,15 +41,11 @@ experiment_with_denoising = {
 }
 
 # The training set of each experiment
-# origin_train_set_sizes = [2000, 4000, 5000, 8000, 10000, 15000, 20000]
-origin_train_set_sizes = [2000, 4000, 10000, 15000, 20000]
+origin_train_set_sizes = [2000, 4000, 5000, 8000, 10000, 15000, 20000]
+# origin_train_set_sizes = [2000, 4000, 10000, 15000, 20000]
 noisy_train_set_sizes  = [(4000, 1000), (8000, 2000), (15000, 5000)]
 
 if __name__ == '__main__':
-    # Initialize the lab, which will run a serial of experiments
-    # Split the database into training set, test set, noisy set, validation set
-    lab = Lab("twitter_sentiment_data_clean.csv", noisy_sources = noisy_set_sizes, total_train_size = 20000, total_test_size = 4000)
-
     # Review the summary of the whole data
     lab.dc.print_summary()
 

@@ -5,6 +5,7 @@ from Common.UtilFuncs import Evaluator, Lab
 
 # Classifiers without denoising
 import Common.SvmMethod as SvmMethod
+import Common.BERTModel as BERTModel
 
 # Denoising Methodes
 import Common.IsolationForestMethod as IsolationForestMethod
@@ -15,14 +16,19 @@ import Common.LocalOutlierFactorMethod as LocalOutlierFactorMethod
 # Each item: source -> (size, distribution)
 noisy_set_sizes = {
     'mislabeled' : (2000, None),                   # max size: 15000
-    'irrelevant' : (2000, [0.25,0.25,0.25,0.25]),  # max size: 34259
+    'irrelevant' : (2000, None),  # max size: 34259
     'translated' : (2000, "reserve_labels"),       # max size: 5000
 }
+
+# Initialize the lab, which will run a serial of experiments
+lab = Lab("twitter_sentiment_data_clean.csv", noisy_sources = noisy_set_sizes,
+          total_train_size = 25000, total_test_size = 12500, validation_size=0)
 
 # Choose a experiment without denoising
 # Each item: name -> (funcion, whether choose) note:only the first active one will be used
 experiment_without_denoising = {
-    'SVM' : (SvmMethod.do_experiment, 1),
+    'SVM' : (SvmMethod.do_experiment, 0),
+    'BERT' : (BERTModel.do_experiment_BERT, lab.dc.get_validation_df(), 1)
 }
 
 # The training set of each experiment
@@ -42,10 +48,6 @@ if __name__ == '__main__':
     RUN = 1      #1/0:  Run new experiments / Read results made by previous experiments
     if RUN:
         # Run new experiments
-        # Initialize the lab, which will run a serial of experiments
-        lab = Lab("twitter_sentiment_data_clean.csv", noisy_sources = noisy_set_sizes,
-                  total_train_size = 25000, total_test_size = 12500, validation_size=0)
-
         # Set the function to classify data without denoising
         lab.set_experiment_no_denoising(experiment_without_denoising)
 
@@ -109,3 +111,5 @@ if __name__ == '__main__':
     lab.Ev.plot(xValue = xValue, yValue = yValue, lines = lines,
                 xLabel = xLabel, title = "SVM effected by different distribution")
 
+
+    lab.Ev.get_evaluate().to_csv("saving/distri_step.csv")

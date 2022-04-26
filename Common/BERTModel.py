@@ -173,14 +173,13 @@ class BERTModel:
 # do an experiment without denoising
 # Parameter: original X,y of training set and test set
 # Return evaluation info
-def do_experiment_BERT(train_df, test_df, *args):
-    lab = args[0]
+def do_experiment_BERT(train_df, test_df, val_df):
+    X_val, y_val = data_center.Xy(val_df)
     X_train, y_train = data_center.Xy(train_df)
     X_test, y_test   = data_center.Xy(test_df)
-    
-    valSet = lab.dc.get_validation()
-    X_val = valSet[0]
-    y_val = valSet[1]
+
+    # print(validate_df)
+    # X_val,y_val = data_center.Xy(validate_df)
 
     # Convert texts to vectors
     bert = BERTModel()
@@ -193,19 +192,13 @@ def do_experiment_BERT(train_df, test_df, *args):
     y_train = np.array(y_train)
     y_val = np.array(y_val)
     y_test = np.array(y_test)
-    
-   
 
     bert.Train(X_train_token, y_train, X_val_token, y_val)
     y_pred = bert.Predict(X_test_token)
-    
 
     # Print the evaluation
     print_evaluation(y_test, y_pred, labels=[0,1,2,3])
     evaluateDF = Evaluator.do_evaluate(y_test, y_pred)
-    # print the accuracy and loss
-    bert.PrintAccuracy()
-    bert.PrintLoss()
-    bert.SaveHistory()
-    
+    bert.Clear()
+
     return evaluateDF

@@ -163,7 +163,7 @@ class Lab():
         self.train_dist                 = None
         self.test_dist                  = None
         self.__create_sets()
-        print("Start experiments at %s", str(datetime.datetime.today()))
+        print("Start experiments at ", str(datetime.datetime.today()))
 
     def suffle(self, rseed):
         self.dc.shuffle(rseed)
@@ -239,7 +239,7 @@ class Lab():
 
             # Do an experiment
             if self.experiment_params is not None:
-                dfResult = self.experiment(train_df, test_df, *self.experiment_params)
+                dfResult = self.experiment(train_df, test_df, self.experiment_params)
             else:
                 dfResult = self.experiment(train_df, test_df)
             if bNoisy:
@@ -256,7 +256,7 @@ class Lab():
                 print("  After de-noising:")
                 # Do an experiment with de-noising first
                 if self.experiment_denoising_params is not None:
-                    dfResult, _ = self.experiment_denoising(train_df, test_df, *self.experiment_denoising_params)
+                    dfResult, _ = self.experiment_denoising(train_df, test_df, self.experiment_denoising_params)
                 else:
                     dfResult, _ = self.experiment_denoising(train_df, test_df)
                 self.Ev.add_evaluation( dfResult, size[0], size[1], "Y",
