@@ -10,7 +10,12 @@
           <option name="url" value="http://39.106.141.223:10080" />
           <option name="userName" value="lf" />
         </UrlAndUserName>
+        <UrlAndUserName>
+          <option name="url" value="https://github.com/TerryWongCode/cs579-project.git" />
+          <option name="userName" value="" />
+        </UrlAndUserName>
       </list>
     </option>
+    <option name="cloneParentDir" value="D:\QQDisk\master\IIT\lesson\579" />
   </component>
 </application>
