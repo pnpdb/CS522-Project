@@ -3,4 +3,7 @@
     <option name="FONT_SIZE" value="18" />
     <option name="FONT_FAMILY" value="NSimSun" />
   </component>
+  <component name="EditorSettings">
+    <option name="IS_INDENT_GUIDES_SHOWN" value="false" />
+  </component>
 </application>
